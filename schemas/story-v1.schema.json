@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/local/resolve-template/schemas/story-v1.schema.json",
+  "title": "resolve-template story v1",
+  "type": "object",
+  "required": ["version", "timeline", "video"],
+  "properties": {
+    "version": { "type": "string" },
+    "title": { "type": "string" },
+    "fps": { "type": "number", "exclusiveMinimum": 0 },
+    "timeline": {
+      "type": "object",
+      "required": ["name", "duration_frames"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "duration_frames": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "video": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["shot", "filename", "track", "start_frame", "duration_frames"],
+        "properties": {
+          "shot": { "type": "integer", "minimum": 1 },
+          "filename": { "type": "string", "minLength": 1 },
+          "track": { "type": "string", "pattern": "^V[0-9]+$" },
+          "start_frame": { "type": "integer", "minimum": 0 },
+          "duration_frames": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "audio": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["filename", "track", "start_frame", "duration_frames"],
+        "properties": {
+          "role": { "type": "string" },
+          "filename": { "type": "string", "minLength": 1 },
+          "track": { "type": "string", "pattern": "^A[0-9]+$" },
+          "start_frame": { "type": "integer", "minimum": 0 },
+          "duration_frames": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "markers": { "type": "array" },
+    "bins": { "type": "array" }
+  },
+  "additionalProperties": true
+}

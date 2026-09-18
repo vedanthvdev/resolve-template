@@ -1,0 +1,18 @@
+version: "1"
+title: One clip POC
+fps: 25
+timeline:
+  name: PRE_EDIT_MAIN
+  duration_frames: 75
+video:
+  - shot: 1
+    filename: 001_OPENING_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 0
+    duration_frames: 75
+audio:
+  - role: vo
+    filename: VO_01_OPENING_PLACEHOLDER.wav
+    track: A1
+    start_frame: 0
+    duration_frames: 75
