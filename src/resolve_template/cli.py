@@ -26,7 +26,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     build_p.add_argument("story", type=Path, help="Path to story.yaml")
     build_p.add_argument("--output", type=Path, default=Path("output"), help="Output directory")
-    build_p.add_argument("--overwrite", action="store_true", help="Overwrite existing output")
+    build_p.add_argument(
+        "--overwrite",
+        "--force",
+        dest="overwrite",
+        action="store_true",
+        help="Replace an existing output directory and ZIP",
+    )
     build_p.add_argument("--json", action="store_true", help="Print the machine-readable result")
 
     new_p = sub.add_parser("new", help="Create a full-story template")
@@ -102,7 +108,10 @@ def cmd_new(directory: Path, force: bool = False) -> int:
     template = files("resolve_template").joinpath("full_story.yaml").read_text(encoding="utf-8")
     story_path.write_text(template, encoding="utf-8")
     print(f"Created full-story template: {story_path.resolve()}")
-    print(f"Build it: resolve-template resolve-build {story_path} --output output/full_story")
+    print(
+        f"Build it: resolve-template resolve-build {story_path} "
+        f"--output output/{directory.name} --force"
+    )
     return 0
 
 
@@ -127,18 +136,27 @@ def cmd_doctor(as_json: bool = False) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from resolve_template.story import StoryValidationError
+
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.command == "inspect":
-        return cmd_inspect(args.drp)
-    if args.command == "resolve-build":
-        return cmd_resolve_build(args.story, args.output, args.overwrite, args.json)
-    if args.command == "new":
-        return cmd_new(args.directory, args.force)
-    if args.command == "doctor":
-        return cmd_doctor(args.json)
-    parser.error(f"unknown command: {args.command}")
-    return 2
+    try:
+        if args.command == "inspect":
+            return cmd_inspect(args.drp)
+        if args.command == "resolve-build":
+            return cmd_resolve_build(args.story, args.output, args.overwrite, args.json)
+        if args.command == "new":
+            return cmd_new(args.directory, args.force)
+        if args.command == "doctor":
+            return cmd_doctor(args.json)
+        parser.error(f"unknown command: {args.command}")
+        return 2
+    except StoryValidationError as exc:
+        print("\n".join(exc.field_errors), file=sys.stderr)
+        return 2
+    except FileExistsError as exc:
+        print(f"{exc} Rerun with --force.", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

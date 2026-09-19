@@ -40,11 +40,33 @@ python3 -m venv .venv
 .venv/bin/resolve-template doctor
 .venv/bin/resolve-template new my_story
 .venv/bin/resolve-template resolve-build examples/full_story/story.yaml \
-  --output output/full_story --overwrite
+  --output output/full_story --force
 ```
 
 The build command prints the DRP path, ZIP path, timeline duration, clip counts,
 and what to open in Resolve. Use `--json` only for machine-readable output.
+Schema failures print field paths without a Python traceback.
+
+## Easier story authoring
+
+- Use seconds such as `start: 2s` and `duration: 1.48s`; values must land on a
+  whole frame at the selected fps.
+- Omit V1 `start` values to place shots sequentially.
+- Omit `timeline.duration_frames` to derive it from V1.
+- Omit `bins` entirely, or map only the roles you need to custom names:
+
+```yaml
+bins:
+  video: Shots
+  music: Score
+  graphics: Title Cards
+```
+
+Frame fields remain supported for exact control. `--overwrite` remains an alias
+for `--force`.
+
+`doctor` checks conventional Resolve locations on macOS, Windows, and Linux.
+Use `RESOLVE_APP_PATH` and `RESOLVE_SCRIPT_API` for custom installs.
 
 ```bash
 .venv/bin/python -m pytest tests/unit

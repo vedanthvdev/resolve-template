@@ -13,6 +13,11 @@ Creative planning stays in `story.yaml`. Models should not emit Resolve XML or f
 Schema violations report field paths such as `story.video.0.track`. Semantic
 checks then enforce contiguous V1 placement and valid transition targets.
 
+Models may author `start`, `duration`, marker `at`, and transition `duration`
+in seconds (`2s`, `0.24s`). V1 starts and timeline duration are derived when
+omitted. `bins` may be omitted or supplied as a partial role-to-name mapping;
+the canonical full story demonstrates the preferred form.
+
 The `titles` section creates generated title-card MP4 placeholders on V2. It
 does not author Resolve Text, Text+, or Fusion compositions.
 

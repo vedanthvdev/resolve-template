@@ -5,11 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from resolve_template.cli import _print_build_summary, cmd_new
+from resolve_template.cli import _print_build_summary, build_parser, cmd_new, main
 from resolve_template.story import load_story
 
 
-def test_new_creates_the_full_story_template(tmp_path: Path) -> None:
+def test_new_creates_the_full_story_template(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     target = tmp_path / "my_story"
     assert cmd_new(target) == 0
     canonical = (
@@ -27,6 +29,9 @@ def test_new_creates_the_full_story_template(tmp_path: Path) -> None:
         "cross_dissolve",
         "fade_to_black",
     }
+    output = capsys.readouterr().out
+    assert f"resolve-template resolve-build {target / 'story.yaml'}" in output
+    assert f"--output output/{target.name} --force" in output
 
 
 def test_new_refuses_to_overwrite(tmp_path: Path) -> None:
@@ -71,3 +76,28 @@ def test_human_build_summary_omits_internal_relink_path(
 def test_machine_summary_stays_json_serializable() -> None:
     result = {"status": "GENERATOR_EXISTS", "summary": {"duration_seconds": 10.0}}
     assert json.loads(json.dumps(result)) == result
+
+
+def test_build_force_alias_sets_overwrite() -> None:
+    args = build_parser().parse_args(["resolve-build", "story.yaml", "--force"])
+    assert args.overwrite is True
+
+
+def test_schema_error_prints_fields_without_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    story = tmp_path / "bad.yaml"
+    story.write_text(
+        """
+version: "1"
+timeline:
+  name: PRE_EDIT_MAIN
+video: []
+""",
+        encoding="utf-8",
+    )
+    assert main(["resolve-build", str(story), "--output", str(tmp_path / "out")]) == 2
+    error = capsys.readouterr().err
+    assert "story.fps:" in error
+    assert "Traceback" not in error
+    assert "story.yaml failed schema validation" not in error

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib.util
+import os
 import platform
 import shutil
 import sys
@@ -9,13 +11,29 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
-from resolve_template.resolve.api import get_resolve
+from resolve_template.resolve.api import get_resolve, resolve_script_module_paths
 
-RESOLVE_APP = Path("/Applications/DaVinci Resolve/DaVinci Resolve.app")
-RESOLVE_MODULES = Path(
-    "/Library/Application Support/Blackmagic Design/"
-    "DaVinci Resolve/Developer/Scripting/Modules"
-)
+
+def resolve_app_paths(system: str | None = None) -> list[Path]:
+    """Return configured and conventional Resolve application locations."""
+    system = system or platform.system()
+    paths: list[Path] = []
+    configured = os.environ.get("RESOLVE_APP_PATH")
+    if configured:
+        paths.append(Path(configured))
+    executable = shutil.which("Resolve.exe" if system == "Windows" else "resolve")
+    if executable:
+        paths.append(Path(executable))
+    if system == "Darwin":
+        paths.append(Path("/Applications/DaVinci Resolve/DaVinci Resolve.app"))
+    elif system == "Windows":
+        program_files = Path(os.environ.get("PROGRAMFILES", r"C:\Program Files"))
+        paths.append(
+            program_files / "Blackmagic Design" / "DaVinci Resolve" / "Resolve.exe"
+        )
+    elif system == "Linux":
+        paths.append(Path("/opt/resolve/bin/resolve"))
+    return list(dict.fromkeys(paths))
 
 
 def doctor_report() -> dict[str, Any]:
@@ -24,15 +42,20 @@ def doctor_report() -> dict[str, Any]:
     schema = files("resolve_template").joinpath("story-v1.schema.json")
     schema_ok = schema.is_file()
 
-    if platform.system() == "Darwin":
-        resolve_app_ok = RESOLVE_APP.is_dir()
-        scripting_ok = RESOLVE_MODULES.is_dir()
-    else:
-        resolve_app_ok = False
-        scripting_ok = False
+    system = platform.system()
+    app_path = next((path for path in resolve_app_paths(system) if path.exists()), None)
+    module_path = next(
+        (path for path in resolve_script_module_paths(system) if path.is_dir()), None
+    )
+    try:
+        module_importable = importlib.util.find_spec("DaVinciResolveScript") is not None
+    except (ImportError, ValueError):
+        module_importable = False
 
-    resolve = get_resolve() if scripting_ok else None
+    resolve = get_resolve()
     resolve_connected = resolve is not None
+    resolve_app_ok = app_path is not None or resolve_connected
+    scripting_ok = module_path is not None or module_importable or resolve_connected
     resolve_version = None
     if resolve_connected:
         getter = getattr(resolve, "GetVersionString", None)
@@ -56,13 +79,15 @@ def doctor_report() -> dict[str, Any]:
         _check(
             "DaVinci Resolve",
             resolve_app_ok,
-            str(RESOLVE_APP) if resolve_app_ok else "not found",
+            str(app_path) if app_path else ("running" if resolve_connected else "not found"),
             "Install DaVinci Resolve Studio to export a native .drp.",
         ),
         _check(
             "Resolve scripting",
             scripting_ok,
-            str(RESOLVE_MODULES) if scripting_ok else "developer modules not found",
+            str(module_path)
+            if module_path
+            else ("importable" if module_importable or resolve_connected else "not found"),
             "Install Resolve scripting modules and enable external scripting.",
         ),
         _check(
