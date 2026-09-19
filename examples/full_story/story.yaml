@@ -1,0 +1,122 @@
+version: "1"
+title: Full story template
+fps: 25
+timeline:
+  name: PRE_EDIT_MAIN
+  duration_frames: 250
+bins:
+  - 01_VIDEO_PLACEHOLDERS
+  - 02_AUDIO_VO
+  - 03_AUDIO_MUSIC
+  - 04_AUDIO_SFX
+  - 05_GRAPHICS
+  - 06_REFERENCE
+markers:
+  - frame: 0
+    name: OPENING
+    color: Blue
+    duration: 1
+    note: Opening title and first shot
+  - frame: 50
+    name: SFX_HIT_1
+    color: Green
+    duration: 25
+    note: First SFX placeholder
+  - frame: 125
+    name: MIDPOINT
+    color: Yellow
+    duration: 1
+    note: Midpoint transition
+  - frame: 225
+    name: LAST_SHOT
+    color: Red
+    duration: 1
+    note: Final shot
+video:
+  - shot: 1
+    filename: 001_SHOT_01_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 0
+    duration_frames: 25
+  - shot: 2
+    filename: 002_SHOT_02_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 25
+    duration_frames: 25
+  - shot: 3
+    filename: 003_SHOT_03_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 50
+    duration_frames: 25
+  - shot: 4
+    filename: 004_SHOT_04_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 75
+    duration_frames: 25
+  - shot: 5
+    filename: 005_SHOT_05_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 100
+    duration_frames: 25
+  - shot: 6
+    filename: 006_SHOT_06_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 125
+    duration_frames: 25
+  - shot: 7
+    filename: 007_SHOT_07_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 150
+    duration_frames: 25
+  - shot: 8
+    filename: 008_SHOT_08_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 175
+    duration_frames: 25
+  - shot: 9
+    filename: 009_SHOT_09_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 200
+    duration_frames: 25
+  - shot: 10
+    filename: 010_SHOT_10_PLACEHOLDER.mp4
+    track: V1
+    start_frame: 225
+    duration_frames: 25
+audio:
+  - role: vo
+    filename: VO_01_BED_PLACEHOLDER.wav
+    track: A1
+    start_frame: 0
+    duration_frames: 250
+  - role: music
+    filename: MUSIC_01_BED_PLACEHOLDER.wav
+    track: A2
+    start_frame: 0
+    duration_frames: 250
+  - role: sfx
+    filename: SFX_01_HIT_PLACEHOLDER.wav
+    track: A3
+    start_frame: 50
+    duration_frames: 25
+  - role: sfx
+    filename: SFX_02_HIT_PLACEHOLDER.wav
+    track: A3
+    start_frame: 175
+    duration_frames: 25
+transitions:
+  - kind: fade_from_black
+    shot: 1
+    duration_frames: 6
+  - kind: cross_dissolve
+    after_shot: 5
+    duration_frames: 6
+  - kind: fade_to_black
+    shot: 10
+    duration_frames: 6
+titles:
+  - filename: TITLE_CARD_01_OPENING.mp4
+    text: OPENING
+    track: V2
+    start_frame: 0
+    duration_frames: 50

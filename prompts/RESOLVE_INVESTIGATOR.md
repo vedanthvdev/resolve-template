@@ -1,6 +1,8 @@
 # Resolve investigator prompt
 
-Use this when a live DaVinci Resolve install is available and Phase 2 must be proven.
+**Archived result:** Phase 2 passed on 2026-09-18. Reuse this only when re-validating against a different Resolve version.
+
+Do **not** repeat Phase 1 (ZIP layout, paris timelines, API existence). That is already in `docs/`. This prompt is only for the one-clip **export + re-import** experiment.
 
 ## Mission
 

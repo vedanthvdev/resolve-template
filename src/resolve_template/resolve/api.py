@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from typing import Any
 
 
@@ -10,10 +12,20 @@ def get_resolve() -> Any | None:
     try:
         import DaVinciResolveScript as dvr  # type: ignore
     except ImportError:
-        return None
+        module_dir = Path(
+            "/Library/Application Support/Blackmagic Design/"
+            "DaVinci Resolve/Developer/Scripting/Modules"
+        )
+        if not module_dir.is_dir():
+            return None
+        sys.path.insert(0, str(module_dir))
+        try:
+            import DaVinciResolveScript as dvr  # type: ignore
+        except ImportError:
+            return None
     try:
         resolve = dvr.scriptapp("Resolve")
-    except Exception:
+    except Exception:  # noqa: BLE001 - native Resolve boundary has no stable exception types
         return None
     return resolve
 

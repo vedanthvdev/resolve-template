@@ -8,11 +8,18 @@ This project aims to produce a **genuine** `.drp` by driving Resolve’s officia
 
 | Capability | Status |
 |------------|--------|
-| Offline inspect of a real `.drp` | Scaffolded (Phase 1) |
-| Generator / CLI that *would* call Resolve | Scaffolded (Phase 2) |
-| Native `.drp` proven via Resolve export + re-import | **Not proven** — Resolve not validated in this environment |
+| Offline inspect of a real `.drp` | Documented (Phase 1, 21.1 ZIP+XML; see `docs/`) |
+| Generated black MP4 + silent WAV package | Working (Phase 2) |
+| Native `.drp` proven via Resolve export + re-import | **Validated** on Studio 21.1.0 |
+| Ten sequential V1 placeholders, no gaps | **Validated** on Studio 21.1.0 |
+| Silent VO / music / SFX on A1–A3 | **Validated** on Studio 21.1.0 |
+| Six Media Pool bins + timeline markers | **Validated** on Studio 21.1.0 |
+| Full package ZIP + one-folder relink | **Validated** on Studio 21.1.0 |
+| Cross dissolve, fades, generated title cards | **Validated** on Studio 21.1.0 |
+| Canonical AI/human full-story workflow | **Validated** on Studio 21.1.0 |
 
-See [docs/phases/README.md](docs/phases/README.md) for the build order. **Phase 2 is the blocker** for everything after it.
+See [docs/phases/README.md](docs/phases/README.md) for the build order. The canonical
+template is [`examples/full_story/story.yaml`](examples/full_story/story.yaml).
 
 ## Phased plan
 
@@ -28,17 +35,26 @@ See [docs/phases/README.md](docs/phases/README.md) for the build order. **Phase 
 ## Quick start
 
 ```bash
-python3 -m pip install -e ".[dev]"
-python3 -m resolve_template.cli --help
-python3 -m pytest tests/unit
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/resolve-template doctor
+.venv/bin/resolve-template new my_story
+.venv/bin/resolve-template resolve-build examples/full_story/story.yaml \
+  --output output/full_story --overwrite
 ```
 
-When DaVinci Resolve is installed and scripting is enabled:
+The build command prints the DRP path, ZIP path, timeline duration, clip counts,
+and what to open in Resolve. Use `--json` only for machine-readable output.
 
 ```bash
-python3 -m resolve_template.cli resolve-build examples/poc_one_clip/story.yaml --output output --overwrite
-python3 -m pytest tests/resolve_roundtrip
+.venv/bin/python -m pytest tests/unit
+RESOLVE_ROUNDTRIP=1 .venv/bin/python -m pytest \
+  tests/resolve_roundtrip/test_full_story.py::test_full_story_roundtrip_in_resolve
 ```
+
+`titles` currently produce generated title-card MP4 placeholders on V2. They are
+not native Resolve Text or Text+ titles, and the `text` field remains planning
+metadata rather than burned-in text.
 
 ## Honesty labels
 
