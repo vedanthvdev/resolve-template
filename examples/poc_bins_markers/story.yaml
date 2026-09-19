@@ -15,22 +15,22 @@ markers:
   - frame: 0
     name: OPENING
     color: Blue
-    duration: 1
+    duration_frames: 1
     note: First video placeholder
   - frame: 50
     name: SFX_HIT_1
     color: Green
-    duration: 25
+    duration_frames: 25
     note: First SFX hit
   - frame: 125
     name: MIDPOINT
     color: Yellow
-    duration: 1
+    duration_frames: 1
     note: Shot 6
   - frame: 225
     name: LAST_SHOT
     color: Red
-    duration: 1
+    duration_frames: 1
     note: Final video placeholder
 video:
   - shot: 1

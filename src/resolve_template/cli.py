@@ -44,6 +44,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory to create (default: full_story)",
     )
     new_p.add_argument("--force", action="store_true", help="Replace an existing story.yaml")
+    new_p.add_argument(
+        "--build",
+        action="store_true",
+        help="Build immediately after writing story.yaml",
+    )
+    new_p.add_argument(
+        "--output",
+        type=Path,
+        help="Build output directory (default: output/<story-directory>)",
+    )
 
     doctor_p = sub.add_parser("doctor", help="Check Python, ffmpeg, Resolve, and scripting")
     doctor_p.add_argument("--json", action="store_true", help="Print the machine-readable report")
@@ -83,9 +93,19 @@ def _print_build_summary(result: dict[str, Any]) -> None:
     print(f"DRP: {drp or 'not created (Resolve is unavailable)'}")
     print(f"ZIP: {result['package_zip']}")
     print(
-        f"Timeline: {summary['timeline_name']} — {summary['duration_seconds']:g} seconds "
-        f"({summary['duration_frames']} frames at {summary['fps']:g} fps)"
+        f"Picture: {summary['picture_duration_seconds']:g} seconds "
+        f"({summary['picture_duration_frames']} frames at {summary['fps']:g} fps)"
     )
+    if summary["fade_tail_frames"]:
+        print(
+            f"Timeline: {summary['timeline_name']} — {summary['duration_seconds']:g} seconds "
+            f"including {summary['fade_tail_frames']} fade-tail frames"
+        )
+    else:
+        print(
+            f"Timeline: {summary['timeline_name']} — {summary['duration_seconds']:g} seconds "
+            f"({summary['duration_frames']} frames)"
+        )
     print(
         f"Clips: {summary['video_clips']} video, {summary['audio_clips']} audio "
         f"(A1 {audio['A1']}, A2 {audio['A2']}, A3 {audio['A3']}), "
@@ -99,7 +119,13 @@ def _print_build_summary(result: dict[str, Any]) -> None:
         print("Next: start DaVinci Resolve, then rerun this command to export project.drp.")
 
 
-def cmd_new(directory: Path, force: bool = False) -> int:
+def cmd_new(
+    directory: Path,
+    force: bool = False,
+    *,
+    build: bool = False,
+    output: Path | None = None,
+) -> int:
     story_path = directory / "story.yaml"
     if story_path.exists() and not force:
         print(f"Refusing to overwrite {story_path}; pass --force.", file=sys.stderr)
@@ -108,9 +134,12 @@ def cmd_new(directory: Path, force: bool = False) -> int:
     template = files("resolve_template").joinpath("full_story.yaml").read_text(encoding="utf-8")
     story_path.write_text(template, encoding="utf-8")
     print(f"Created full-story template: {story_path.resolve()}")
+    build_output = output or Path("output") / directory.name
+    if build:
+        return cmd_resolve_build(story_path, build_output, force)
     print(
         f"Build it: resolve-template resolve-build {story_path} "
-        f"--output output/{directory.name} --force"
+        f"--output {build_output} --force"
     )
     return 0
 
@@ -146,7 +175,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "resolve-build":
             return cmd_resolve_build(args.story, args.output, args.overwrite, args.json)
         if args.command == "new":
-            return cmd_new(args.directory, args.force)
+            return cmd_new(
+                args.directory,
+                args.force,
+                build=args.build,
+                output=args.output,
+            )
         if args.command == "doctor":
             return cmd_doctor(args.json)
         parser.error(f"unknown command: {args.command}")

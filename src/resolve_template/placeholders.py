@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import tempfile
+import textwrap
 import wave
 from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 def generate_placeholder_video(
@@ -115,7 +119,7 @@ def generate_placeholder_title_still(
     fps: int = 25,
     duration_frames: int = 1,
 ) -> Path:
-    """Create a static title card. PNG is one frame; MP4 uses `duration_frames`."""
+    """Create a static title card with visible text."""
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
         raise RuntimeError("ffmpeg is required to generate the placeholder title still")
@@ -125,27 +129,58 @@ def generate_placeholder_title_still(
     media_dir = Path(media_dir)
     media_dir.mkdir(parents=True, exist_ok=True)
     still_path = media_dir / filename
-    band = 0.20 + (sum(ord(char) for char in text) % 20) / 100
-    command = [
-        ffmpeg,
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-y",
-        "-f",
-        "lavfi",
-        "-i",
-        f"color=c=0x1a1a1a:s=1280x720:r={fps}",
-        "-vf",
-        f"drawbox=x=80:y=300:w=1120:h=120:color=white@{band:.2f}:t=fill",
-        "-frames:v",
-        str(duration_frames),
-    ]
-    if still_path.suffix.lower() == ".mp4":
-        command.extend(["-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"])
-    command.append(str(still_path))
-    subprocess.run(command, check=True)
+    if still_path.suffix.lower() == ".png":
+        _render_title_image(still_path, text)
+        return still_path
+
+    with tempfile.TemporaryDirectory(prefix="resolve-template-title-") as temp_dir:
+        source_image = Path(temp_dir) / "title.png"
+        _render_title_image(source_image, text)
+        command = [
+            ffmpeg,
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-loop",
+            "1",
+            "-framerate",
+            str(fps),
+            "-i",
+            str(source_image),
+            "-frames:v",
+            str(duration_frames),
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            str(still_path),
+        ]
+        subprocess.run(command, check=True)
     return still_path
+
+
+def _render_title_image(path: Path, text: str) -> None:
+    image = Image.new("RGB", (1280, 720), "#17191d")
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((80, 255, 1200, 465), radius=24, fill="#f4f4f2")
+    try:
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 72)
+    except OSError:
+        font = ImageFont.load_default()
+    wrapped = "\n".join(textwrap.wrap(text.strip() or "TITLE", width=26))
+    draw.multiline_text(
+        (640, 360),
+        wrapped,
+        font=font,
+        fill="#17191d",
+        anchor="mm",
+        align="center",
+        spacing=10,
+    )
+    image.save(path, format="PNG")
 
 
 def _require_positive(fps: int, duration_frames: int) -> None:

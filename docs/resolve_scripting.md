@@ -181,15 +181,18 @@ Only `Project.SetSettings({"timelineFrameRate": 25.0})` was required. A combined
 
 - Cross Dissolve via `AddTransition` survived export/re-import (`GetType() == "transition"`)
 - Fade from/to black implemented as Cross Dissolve on the first clip start (`alignment=right`) and last clip end (`alignment=right`)
-- Title card: generated static MP4 on V2 (not Fusion, not `InsertTitleIntoTimeline`)
-- Source handles: +12 frames each end when a cross dissolve is present
+- Title card: generated static MP4 with visibly rendered text on V2 (not Fusion,
+  not `InsertTitleIntoTimeline`)
+- Source handles: only the head/tail frames required by each transition
 
 ## Phase 8 validated result
 
 - Canonical `examples/full_story/story.yaml` uses the complete safe subset
 - JSON Schema validation runs before semantic validation and reports field paths
-- Re-import matched 10 V1 clips, 4 audio clips, 6 bins, 4 markers, 3 transition
-  roles, and 1 generated title card on V2
+- Re-import matched 10 labeled, color-coded V1 clips, 4 audio clips, 5 renamed
+  bins, 4 markers, 3 transition roles, and 1 generated title card on V2
+- Timeline remained in Master; tracks remained named Picture, Titles, VO,
+  Music, and SFX
 - All 15 media items relinked to the persistent package media folder
 
 ## Honesty

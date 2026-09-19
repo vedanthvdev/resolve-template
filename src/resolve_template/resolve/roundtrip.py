@@ -24,7 +24,7 @@ from resolve_template.story import (
     bins,
     load_story,
     markers,
-    source_handle_frames,
+    source_handles,
     titles,
     track_index,
     transitions,
@@ -34,6 +34,20 @@ from resolve_template.story import (
 DISPOSABLE_PROJECT_PREFIX = "_rt_resolve_template_"
 PROTECTED_PROJECT_NAMES = {"paris", "Copy of paris"}
 RESOLVE_LOCK_PATH = Path("/tmp/resolve-template-resolve.lock")
+PLACEHOLDER_VIDEO_COLORS = {
+    "Blue": "0x315c8a",
+    "Green": "0x3f7d5a",
+    "Yellow": "0xa8842f",
+    "Pink": "0x8f4f70",
+    "Purple": "0x624f82",
+}
+TRACK_NAMES = {
+    ("video", 1): "Picture",
+    ("video", 2): "Titles",
+    ("audio", 1): "VO",
+    ("audio", 2): "Music",
+    ("audio", 3): "SFX",
+}
 
 
 def resolve_build(
@@ -73,7 +87,7 @@ def resolve_build(
     bin_names = bins(story)
     bin_destinations = bin_mapping(story)
     marker_specs = markers(story)
-    handle_frames = source_handle_frames(story)
+    video_handles = source_handles(story)
     summary = _story_summary(story)
 
     media_dir = output / "Placeholder_Media"
@@ -82,7 +96,12 @@ def resolve_build(
             media_dir,
             filename=clip["filename"],
             fps=fps,
-            duration_frames=int(clip["duration_frames"]) + (2 * handle_frames),
+            duration_frames=(
+                int(clip["duration_frames"])
+                + video_handles[int(clip["shot"])]["head"]
+                + video_handles[int(clip["shot"])]["tail"]
+            ),
+            color=PLACEHOLDER_VIDEO_COLORS[str(clip["color"])],
         )
         for clip in videos
     ]
@@ -143,7 +162,7 @@ def resolve_build(
             bin_names=bin_names,
             bin_destinations=bin_destinations,
             marker_specs=marker_specs,
-            handle_frames=handle_frames,
+            video_handles=video_handles,
             media_dir=media_dir,
             drp_path=drp_path,
         )
@@ -173,13 +192,25 @@ def _resolve_lock() -> Iterator[None]:
 
 def _story_summary(story: dict[str, Any]) -> dict[str, Any]:
     fps = float(story["fps"])
-    duration_frames = int(story["timeline"]["duration_frames"])
+    picture_frames = int(story["timeline"]["duration_frames"])
+    fade_tail_frames = max(
+        (
+            int(item["duration_frames"])
+            for item in transitions(story)
+            if item.get("kind") == "fade_to_black"
+        ),
+        default=0,
+    )
+    duration_frames = picture_frames + fade_tail_frames
     audios = audio_clips(story)
     return {
         "timeline_name": story["timeline"]["name"],
         "fps": fps,
         "duration_frames": duration_frames,
         "duration_seconds": duration_frames / fps,
+        "picture_duration_frames": picture_frames,
+        "picture_duration_seconds": picture_frames / fps,
+        "fade_tail_frames": fade_tail_frames,
         "video_clips": len(video_clips(story)),
         "audio_clips": len(audios),
         "audio_by_track": {
@@ -208,7 +239,7 @@ def _resolve_roundtrip(
     bin_names: list[str],
     bin_destinations: dict[str, str],
     marker_specs: list[dict[str, Any]],
-    handle_frames: int,
+    video_handles: dict[int, dict[str, int]],
     media_dir: Path,
     drp_path: Path,
 ) -> dict[str, Any]:
@@ -230,6 +261,7 @@ def _resolve_roundtrip(
         missing = [Path(path).name for path in media_paths if Path(path).name not in clips]
         if missing:
             raise RuntimeError(f"Resolve import returned unexpected clips, missing {missing}")
+        _apply_clip_metadata(clips, videos)
         if bin_names:
             _organize_bins(
                 media_pool,
@@ -240,18 +272,25 @@ def _resolve_roundtrip(
                 bin_names,
                 bin_destinations,
             )
+        root_folder = media_pool.GetRootFolder()
+        if not media_pool.SetCurrentFolder(root_folder):
+            raise RuntimeError("Resolve could not restore the Master media-pool folder")
 
         timeline = media_pool.CreateEmptyTimeline(timeline_name)
         if timeline is None or not project.SetCurrentTimeline(timeline):
             raise RuntimeError(f"Resolve could not create timeline {timeline_name}")
         _ensure_audio_tracks(timeline, audios)
         _ensure_video_tracks(timeline, titles)
+        _name_tracks(timeline)
 
         video_infos = [
             {
                 "mediaPoolItem": clips[path.name],
-                "startFrame": handle_frames,
-                "endFrame": handle_frames + int(clip["duration_frames"]),
+                "startFrame": video_handles[int(clip["shot"])]["head"],
+                "endFrame": (
+                    video_handles[int(clip["shot"])]["head"]
+                    + int(clip["duration_frames"])
+                ),
                 "mediaType": 1,
                 "trackIndex": 1,
                 "recordFrame": int(clip["start_frame"]),
@@ -264,6 +303,7 @@ def _resolve_roundtrip(
                 f"Resolve appended {0 if appended_video is None else len(appended_video)} "
                 f"V1 items instead of {len(videos)}"
             )
+        _apply_timeline_labels(appended_video, videos)
 
         if audios:
             audio_infos = [
@@ -305,7 +345,7 @@ def _resolve_roundtrip(
                 marker["color"],
                 str(marker["name"]),
                 str(marker.get("note") or ""),
-                int(marker.get("duration") or 1),
+                int(marker["duration_frames"]),
             ):
                 raise RuntimeError(f"Resolve rejected marker {marker['name']}")
 
@@ -418,6 +458,26 @@ def _organize_bins(
             raise RuntimeError(f"Resolve could not move clips into {name}")
 
 
+def _apply_clip_metadata(
+    clips: dict[str, Any],
+    videos: list[dict[str, Any]],
+) -> None:
+    for clip in videos:
+        item = clips[clip["filename"]]
+        if not item.SetClipColor(str(clip["color"])):
+            raise RuntimeError(f"Resolve could not color video clip {clip['filename']}")
+
+
+def _apply_timeline_labels(items: list[Any], videos: list[dict[str, Any]]) -> None:
+    for item, clip in zip(items, videos, strict=True):
+        color = str(clip["color"])
+        label = str(clip["label"])
+        if not item.SetClipColor(color):
+            raise RuntimeError(f"Resolve could not color timeline clip {clip['filename']}")
+        if not item.AddMarker(0, color, label, f"Shot {clip['shot']}", 1):
+            raise RuntimeError(f"Resolve could not label timeline clip {clip['filename']}")
+
+
 def _ensure_video_tracks(timeline: Any, titles: list[dict[str, Any]]) -> None:
     needed = max((track_index(title["track"]) for title in titles), default=1)
     while timeline.GetTrackCount("video") < needed:
@@ -503,6 +563,14 @@ def _ensure_audio_tracks(timeline: Any, audios: list[dict[str, Any]]) -> None:
             raise RuntimeError("Resolve could not add an audio track for A2/A3 placeholders")
 
 
+def _name_tracks(timeline: Any) -> None:
+    for (track_type, index), name in TRACK_NAMES.items():
+        if index > timeline.GetTrackCount(track_type):
+            continue
+        if not timeline.SetTrackName(track_type, index, name):
+            raise RuntimeError(f"Resolve could not name {track_type} track {index} {name!r}")
+
+
 def _import_media(media_pool: Any, media_paths: list[str]) -> list[Any]:
     imported = []
     for path in media_paths:
@@ -539,6 +607,12 @@ def _validate_roundtrip(
     timeline = next((item for item in timelines if item.GetName() == timeline_name), None)
     if timeline is None:
         raise RuntimeError(f"Re-imported project has no timeline named {timeline_name}")
+    root = project.GetMediaPool().GetRootFolder()
+    master_timelines = [
+        item.GetName() for item in (root.GetClipList() or []) if _looks_like_timeline(item)
+    ]
+    if timeline_name not in master_timelines:
+        raise RuntimeError(f"Timeline {timeline_name} is not in the Master media-pool folder")
 
     settings = timeline.GetSettings()
     actual_fps = float(settings["timelineFrameRate"])
@@ -553,7 +627,7 @@ def _validate_roundtrip(
     video_names = [item.GetName() for item in video_items]
     video_starts = [int(item.GetStart()) for item in video_items]
     video_durations = [int(item.GetDuration()) for item in video_items]
-    expected_names = [clip["filename"] for clip in videos]
+    expected_names = [str(clip["filename"]) for clip in videos]
     expected_starts = [int(clip["start_frame"]) for clip in videos]
     expected_durations = [int(clip["duration_frames"]) for clip in videos]
     if video_names != expected_names:
@@ -562,6 +636,31 @@ def _validate_roundtrip(
         raise RuntimeError(f"V1 starts {video_starts} do not match {expected_starts}")
     if video_durations != expected_durations:
         raise RuntimeError(f"V1 durations {video_durations} do not match {expected_durations}")
+    shot_labels = []
+    clip_colors = []
+    for item, clip in zip(video_items, videos, strict=True):
+        item_markers = item.GetMarkers() or {}
+        label = next(
+            (
+                str(info.get("name"))
+                for info in item_markers.values()
+                if isinstance(info, dict) and info.get("name")
+            ),
+            "",
+        )
+        if label != str(clip["label"]):
+            raise RuntimeError(
+                f"Timeline clip {clip['filename']} label {label!r} "
+                f"does not match {clip['label']!r}"
+            )
+        color = str(item.GetClipColor())
+        if color != str(clip["color"]):
+            raise RuntimeError(
+                f"Timeline clip {clip['filename']} color {color!r} "
+                f"does not match {clip['color']!r}"
+            )
+        shot_labels.append(label)
+        clip_colors.append(color)
 
     gaps = [
         {
@@ -576,6 +675,22 @@ def _validate_roundtrip(
         raise RuntimeError(f"V1 has gaps or overlaps: {gaps}")
 
     audio_by_track = _audio_items_by_track(timeline, audios)
+    picture_duration = video_starts[-1] + video_durations[-1] if video_items else 0
+    fade_tail = max(
+        (
+            int(spec["duration_frames"])
+            for spec in transitions
+            if spec.get("kind") == "fade_to_black"
+        ),
+        default=0,
+    )
+    timeline_duration = int(timeline.GetEndFrame()) - int(timeline.GetStartFrame())
+    expected_timeline_duration = picture_duration + fade_tail
+    if timeline_duration != expected_timeline_duration:
+        raise RuntimeError(
+            f"Timeline duration {timeline_duration} does not match picture "
+            f"{picture_duration} plus fade tail {fade_tail}"
+        )
 
     result: dict[str, Any] = {
         "fps": actual_fps,
@@ -589,8 +704,14 @@ def _validate_roundtrip(
         "video_names": video_names,
         "video_starts": video_starts,
         "video_durations": video_durations,
-        "timeline_duration_frames": video_starts[-1] + video_durations[-1] if video_items else 0,
+        "picture_duration_frames": picture_duration,
+        "timeline_duration_frames": timeline_duration,
+        "fade_tail_frames": fade_tail,
         "gaps": gaps,
+        "shot_labels": shot_labels,
+        "clip_colors": clip_colors,
+        "timeline_folder": "Master",
+        "track_names": _validate_track_names(timeline),
     }
     if video_items:
         result["video_name"] = video_names[0]
@@ -611,6 +732,21 @@ def _validate_roundtrip(
     return result
 
 
+def _validate_track_names(timeline: Any) -> dict[str, str]:
+    actual: dict[str, str] = {}
+    for (track_type, index), expected in TRACK_NAMES.items():
+        if index > timeline.GetTrackCount(track_type):
+            continue
+        name = str(timeline.GetTrackName(track_type, index))
+        if name != expected:
+            raise RuntimeError(
+                f"{track_type} track {index} is named {name!r}, expected {expected!r}"
+            )
+        prefix = "V" if track_type == "video" else "A"
+        actual[f"{prefix}{index}"] = name
+    return actual
+
+
 def _audio_items_by_track(timeline: Any, audios: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     result: dict[str, dict[str, Any]] = {}
     for label in ("A1", "A2", "A3"):
@@ -620,7 +756,7 @@ def _audio_items_by_track(timeline: Any, audios: list[dict[str, Any]]) -> dict[s
             items = timeline.GetItemListInTrack("audio", index) or []
         expected = [clip for clip in audios if clip["track"] == label]
         names = [item.GetName() for item in items]
-        expected_names = [clip["filename"] for clip in expected]
+        expected_names = [str(clip["filename"]) for clip in expected]
         if names != expected_names:
             raise RuntimeError(f"{label} names {names} do not match {expected_names}")
         starts = [int(item.GetStart()) for item in items]
@@ -653,15 +789,15 @@ def _validate_bins(
     video_bin = bin_destinations.get("video")
     for clip in videos:
         if video_bin:
-            expected[video_bin].append(clip["filename"])
+            expected[video_bin].append(str(clip["filename"]))
     for clip in audios:
         audio_bin = bin_destinations.get(str(clip["role"]))
         if audio_bin:
-            expected[audio_bin].append(clip["filename"])
+            expected[audio_bin].append(str(clip["filename"]))
     graphics_bin = bin_destinations.get("graphics")
     for title in titles:
         if graphics_bin:
-            expected[graphics_bin].append(title["filename"])
+            expected[graphics_bin].append(str(title["filename"]))
     for name, filenames in expected.items():
         actual_media = [
             item.GetName()
@@ -747,7 +883,7 @@ def _validate_titles(timeline: Any, title_specs: list[dict[str, Any]]) -> dict[s
         raise RuntimeError("Re-imported project is missing the title video track")
     items = timeline.GetItemListInTrack("video", needed) or []
     names = [item.GetName() for item in items]
-    expected_names = [title["filename"] for title in title_specs]
+    expected_names = [str(title["filename"]) for title in title_specs]
     if names != expected_names:
         raise RuntimeError(f"title names {names} do not match {expected_names}")
     starts = [int(item.GetStart()) for item in items]
@@ -822,12 +958,12 @@ def _package_readme(validated: bool) -> str:
         f"**Validation label:** `{label}`\n\n"
         f"{drp_line}\n"
         "Contents:\n"
-        "- `Placeholder_Media/` — generated black MP4s, silent WAVs, and title-card MP4s (not real footage)\n"
+        "- `Placeholder_Media/` — generated color-coded MP4s, silent WAVs, and title-card MP4s (not real footage)\n"
         "- `shot_tracker.csv` — timeline durations plus source-handle metadata\n"
         "- `timeline_map.md` — V1/V2/A1–A3 layout, markers, and transitions\n"
         "- `story.snapshot.yaml` — the story used to build this package\n\n"
         "Titles are generated title-card MP4 placeholders on V2, not native Resolve Text/Text+ titles. "
-        "The story `text` field remains planning metadata and is not burned into the card.\n\n"
+        "The story `text` field is visibly rendered into each card.\n\n"
         "To relink after unzip: in Resolve, select the offline clips and relink "
         "once to this package's `Placeholder_Media/` folder.\n"
     )

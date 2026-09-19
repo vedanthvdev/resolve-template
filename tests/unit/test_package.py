@@ -61,6 +61,6 @@ def test_tracker_records_cross_dissolve_source_handles() -> None:
     )
     video_row = next(row for row in tracker_rows(story) if row["kind"] == "video")
     assert video_row["duration_frames"] == 50
-    assert video_row["source_duration_frames"] == 74
-    assert video_row["head_handle_frames"] == 12
-    assert video_row["tail_handle_frames"] == 12
+    assert video_row["source_duration_frames"] == 62
+    assert video_row["head_handle_frames"] == 6
+    assert video_row["tail_handle_frames"] == 6

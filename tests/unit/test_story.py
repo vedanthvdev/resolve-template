@@ -258,6 +258,7 @@ transitions:
     assert story["timeline"]["duration_frames"] == 62
     assert story["audio"][0]["duration_frames"] == 62
     assert story["markers"][0]["frame"] == 37
+    assert story["markers"][0]["duration_frames"] == 1
     assert story["transitions"][0]["duration_frames"] == 5
 
 
@@ -303,3 +304,45 @@ def test_legacy_bin_lists_route_by_role_order() -> None:
         "vo": "Voice",
         "music": "Score",
     }
+
+
+def test_filenames_labels_colors_and_marker_duration_are_normalized(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "auto.yaml"
+    path.write_text(
+        """
+version: "1"
+fps: 25
+timeline:
+  name: PRE_EDIT_MAIN
+video:
+  - shot: 1
+    label: Cafe exterior
+    track: V1
+    duration: 2s
+audio:
+  - role: vo
+    label: Welcome
+    track: A1
+    start: 0s
+    duration: 2s
+markers:
+  - at: 1s
+    duration: 0.4s
+    name: BEAT
+    color: Blue
+titles:
+  - text: The Cafe
+    track: V2
+    start: 0s
+    duration: 1s
+""",
+        encoding="utf-8",
+    )
+    story = load_story(path)
+    assert story["video"][0]["filename"] == "001_CAFE_EXTERIOR_PLACEHOLDER.mp4"
+    assert story["video"][0]["color"] == "Blue"
+    assert story["audio"][0]["filename"] == "VO_01_WELCOME_PLACEHOLDER.wav"
+    assert story["titles"][0]["filename"] == "TITLE_01_THE_CAFE.mp4"
+    assert story["markers"][0]["duration_frames"] == 10

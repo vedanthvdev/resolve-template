@@ -9,7 +9,7 @@ This project aims to produce a **genuine** `.drp` by driving Resolve’s officia
 | Capability | Status |
 |------------|--------|
 | Offline inspect of a real `.drp` | Documented (Phase 1, 21.1 ZIP+XML; see `docs/`) |
-| Generated black MP4 + silent WAV package | Working (Phase 2) |
+| Generated color-coded MP4 + silent WAV package | Working (Phase 2) |
 | Native `.drp` proven via Resolve export + re-import | **Validated** on Studio 21.1.0 |
 | Ten sequential V1 placeholders, no gaps | **Validated** on Studio 21.1.0 |
 | Silent VO / music / SFX on A1–A3 | **Validated** on Studio 21.1.0 |
@@ -38,7 +38,7 @@ template is [`examples/full_story/story.yaml`](examples/full_story/story.yaml).
 python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/resolve-template doctor
-.venv/bin/resolve-template new my_story
+.venv/bin/resolve-template new my_story --build
 .venv/bin/resolve-template resolve-build examples/full_story/story.yaml \
   --output output/full_story --force
 ```
@@ -51,8 +51,12 @@ Schema failures print field paths without a Python traceback.
 
 - Use seconds such as `start: 2s` and `duration: 1.48s`; values must land on a
   whole frame at the selected fps.
+- Omit media filenames to derive safe names from shot numbers, roles, and labels.
+- Add video `label` and optional `color`; Resolve receives colored clips with
+  labeled clip markers.
 - Omit V1 `start` values to place shots sequentially.
 - Omit `timeline.duration_frames` to derive it from V1.
+- Use seconds for marker `at` and `duration` too.
 - Omit `bins` entirely, or map only the roles you need to custom names:
 
 ```yaml
@@ -74,9 +78,9 @@ RESOLVE_ROUNDTRIP=1 .venv/bin/python -m pytest \
   tests/resolve_roundtrip/test_full_story.py::test_full_story_roundtrip_in_resolve
 ```
 
-`titles` currently produce generated title-card MP4 placeholders on V2. They are
-not native Resolve Text or Text+ titles, and the `text` field remains planning
-metadata rather than burned-in text.
+`titles` produce generated title-card MP4 placeholders on the named `Titles`
+track. They are not native Resolve Text or Text+ titles, but the `text` field is
+rendered visibly into the card.
 
 ## Honesty labels
 

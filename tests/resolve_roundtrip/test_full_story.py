@@ -21,15 +21,18 @@ def test_full_story_builds_without_resolve(
     assert result["summary"] == {
         "timeline_name": "PRE_EDIT_MAIN",
         "fps": 25.0,
-        "duration_frames": 250,
-        "duration_seconds": 10.0,
+        "duration_frames": 256,
+        "duration_seconds": 10.24,
+        "picture_duration_frames": 250,
+        "picture_duration_seconds": 10.0,
+        "fade_tail_frames": 6,
         "video_clips": 10,
         "audio_clips": 4,
         "audio_by_track": {"A1": 1, "A2": 1, "A3": 2},
         "title_cards": 1,
         "transitions": ["fade_from_black", "cross_dissolve", "fade_to_black"],
     }
-    assert (output / "Placeholder_Media" / "TITLE_CARD_01_OPENING.mp4").is_file()
+    assert (output / "Placeholder_Media" / "TITLE_01_OPENING.mp4").is_file()
     assert Path(result["package_zip"]).is_file()
 
 
@@ -47,7 +50,19 @@ def test_full_story_roundtrip_in_resolve() -> None:
     assert validation["audio_items_a1"] == 1
     assert validation["audio_items_a2"] == 1
     assert validation["audio_items_a3"] == 2
-    assert validation["title_names"] == ["TITLE_CARD_01_OPENING.mp4"]
+    assert validation["title_names"] == ["TITLE_01_OPENING.mp4"]
+    assert validation["timeline_folder"] == "Master"
+    assert validation["track_names"] == {
+        "V1": "Picture",
+        "V2": "Titles",
+        "A1": "VO",
+        "A2": "Music",
+        "A3": "SFX",
+    }
+    assert validation["picture_duration_frames"] == 250
+    assert validation["timeline_duration_frames"] == 256
+    assert validation["shot_labels"][:3] == ["Establishing", "Approach", "Entrance"]
+    assert len(set(validation["clip_colors"])) == 5
     assert validation["transition_count"] == 3
     assert validation["marker_count"] == 4
     assert validation["bin_names"] == [
