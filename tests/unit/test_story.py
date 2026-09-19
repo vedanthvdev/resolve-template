@@ -8,6 +8,8 @@ import pytest
 from resolve_template.story import (
     STANDARD_BINS,
     StoryValidationError,
+    bin_mapping,
+    bins,
     load_story,
     validate_audio_tracks,
     validate_bins_and_markers,
@@ -98,7 +100,7 @@ def test_bins_and_markers_story_loads() -> None:
     ]
 
 
-def test_wrong_bin_list_is_rejected() -> None:
+def test_duplicate_bin_names_are_rejected() -> None:
     story = {
         "fps": 25,
         "timeline": {"name": "PRE_EDIT_MAIN", "duration_frames": 25},
@@ -111,9 +113,9 @@ def test_wrong_bin_list_is_rejected() -> None:
                 "duration_frames": 25,
             }
         ],
-        "bins": ["Master"],
+        "bins": ["Master", "Master"],
     }
-    with pytest.raises(ValueError, match="bins must be exactly"):
+    with pytest.raises(ValueError, match="bin names must be unique"):
         validate_bins_and_markers(story)
 
 
@@ -214,3 +216,90 @@ def test_duplicate_media_filenames_are_rejected() -> None:
     }
     with pytest.raises(ValueError, match="media filenames must be unique"):
         validate_unique_media_filenames(story)
+
+
+def test_seconds_are_normalized_and_timeline_is_derived(tmp_path: Path) -> None:
+    path = tmp_path / "seconds.yaml"
+    path.write_text(
+        """
+version: "1"
+fps: 25
+timeline:
+  name: PRE_EDIT_MAIN
+video:
+  - shot: 1
+    filename: a.mp4
+    track: V1
+    duration: 1s
+  - shot: 2
+    filename: b.mp4
+    track: V1
+    duration: 1.48s
+audio:
+  - role: music
+    filename: bed.wav
+    track: A2
+    start: 0s
+    duration: 2.48s
+markers:
+  - at: 1.48s
+    name: BEAT
+    color: Blue
+transitions:
+  - kind: cross_dissolve
+    after_shot: 1
+    duration: 0.2s
+""",
+        encoding="utf-8",
+    )
+    story = load_story(path)
+    assert [clip["start_frame"] for clip in story["video"]] == [0, 25]
+    assert [clip["duration_frames"] for clip in story["video"]] == [25, 37]
+    assert story["timeline"]["duration_frames"] == 62
+    assert story["audio"][0]["duration_frames"] == 62
+    assert story["markers"][0]["frame"] == 37
+    assert story["transitions"][0]["duration_frames"] == 5
+
+
+def test_seconds_must_land_on_a_whole_frame(tmp_path: Path) -> None:
+    path = tmp_path / "fractional.yaml"
+    path.write_text(
+        """
+version: "1"
+fps: 25
+timeline:
+  name: PRE_EDIT_MAIN
+video:
+  - shot: 1
+    filename: a.mp4
+    track: V1
+    duration: 0.01s
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(StoryValidationError, match=r"story\.video\.0\.duration"):
+        load_story(path)
+
+
+def test_bins_can_be_renamed_and_roles_omitted() -> None:
+    story = {
+        "bins": {
+            "video": "Shots",
+            "music": "Score",
+            "graphics": "Cards",
+        }
+    }
+    assert bins(story) == ["Shots", "Score", "Cards"]
+    assert bin_mapping(story) == {
+        "video": "Shots",
+        "music": "Score",
+        "graphics": "Cards",
+    }
+
+
+def test_legacy_bin_lists_route_by_role_order() -> None:
+    assert bin_mapping({"bins": ["Shots", "Voice", "Score"]}) == {
+        "video": "Shots",
+        "vo": "Voice",
+        "music": "Score",
+    }

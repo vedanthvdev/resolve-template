@@ -20,9 +20,7 @@ from resolve_template.placeholders import (
 from resolve_template.resolve.api import get_resolve
 from resolve_template.story import (
     audio_clips,
-    bin_for_audio,
-    bin_for_title,
-    bin_for_video,
+    bin_mapping,
     bins,
     load_story,
     markers,
@@ -56,14 +54,14 @@ def resolve_build(
 
     if output.exists():
         if not overwrite:
-            raise FileExistsError(f"output exists (pass --overwrite): {output}")
+            raise FileExistsError(f"Output already exists: {output}.")
         shutil.rmtree(output)
     output.mkdir(parents=True)
 
     package_zip = output.with_suffix(".zip")
     if package_zip.exists():
         if not overwrite:
-            raise FileExistsError(f"package exists (pass --overwrite): {package_zip}")
+            raise FileExistsError(f"Package already exists: {package_zip}.")
         package_zip.unlink()
 
     timeline_spec = story["timeline"]
@@ -73,6 +71,7 @@ def resolve_build(
     title_specs = titles(story)
     transition_specs = transitions(story)
     bin_names = bins(story)
+    bin_destinations = bin_mapping(story)
     marker_specs = markers(story)
     handle_frames = source_handle_frames(story)
     summary = _story_summary(story)
@@ -142,6 +141,7 @@ def resolve_build(
             audio_paths=audio_paths,
             title_paths=title_paths,
             bin_names=bin_names,
+            bin_destinations=bin_destinations,
             marker_specs=marker_specs,
             handle_frames=handle_frames,
             media_dir=media_dir,
@@ -206,6 +206,7 @@ def _resolve_roundtrip(
     audio_paths: list[Path],
     title_paths: list[Path],
     bin_names: list[str],
+    bin_destinations: dict[str, str],
     marker_specs: list[dict[str, Any]],
     handle_frames: int,
     media_dir: Path,
@@ -230,7 +231,15 @@ def _resolve_roundtrip(
         if missing:
             raise RuntimeError(f"Resolve import returned unexpected clips, missing {missing}")
         if bin_names:
-            _organize_bins(media_pool, clips, videos, audios, titles, bin_names)
+            _organize_bins(
+                media_pool,
+                clips,
+                videos,
+                audios,
+                titles,
+                bin_names,
+                bin_destinations,
+            )
 
         timeline = media_pool.CreateEmptyTimeline(timeline_name)
         if timeline is None or not project.SetCurrentTimeline(timeline):
@@ -323,6 +332,7 @@ def _resolve_roundtrip(
             titles=titles,
             transitions=transitions,
             bin_names=bin_names,
+            bin_destinations=bin_destinations,
             marker_specs=marker_specs,
             relinked=relinked,
         )
@@ -380,6 +390,7 @@ def _organize_bins(
     audios: list[dict[str, Any]],
     titles: list[dict[str, Any]],
     bin_names: list[str],
+    bin_destinations: dict[str, str],
 ) -> None:
     root = media_pool.GetRootFolder()
     folders = {}
@@ -390,12 +401,18 @@ def _organize_bins(
         folders[name] = folder
 
     grouped: dict[str, list[Any]] = {name: [] for name in bin_names}
+    video_bin = bin_destinations.get("video")
     for clip in videos:
-        grouped[bin_for_video(clip)].append(clips[clip["filename"]])
+        if video_bin:
+            grouped[video_bin].append(clips[clip["filename"]])
     for clip in audios:
-        grouped[bin_for_audio(clip)].append(clips[clip["filename"]])
+        audio_bin = bin_destinations.get(str(clip["role"]))
+        if audio_bin:
+            grouped[audio_bin].append(clips[clip["filename"]])
+    graphics_bin = bin_destinations.get("graphics")
     for title in titles:
-        grouped[bin_for_title(title)].append(clips[title["filename"]])
+        if graphics_bin:
+            grouped[graphics_bin].append(clips[title["filename"]])
     for name, items in grouped.items():
         if items and not media_pool.MoveClips(items, folders[name]):
             raise RuntimeError(f"Resolve could not move clips into {name}")
@@ -512,6 +529,7 @@ def _validate_roundtrip(
     titles: list[dict[str, Any]],
     transitions: list[dict[str, Any]],
     bin_names: list[str],
+    bin_destinations: dict[str, str],
     marker_specs: list[dict[str, Any]],
     relinked: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -581,7 +599,9 @@ def _validate_roundtrip(
     if a1_items:
         result["audio_name"] = a1_items[0].GetName()
         result["audio_duration_frames"] = int(a1_items[0].GetDuration())
-    result["bin_names"] = _validate_bins(project, bin_names, videos, audios, titles)
+    result["bin_names"] = _validate_bins(
+        project, bin_names, bin_destinations, videos, audios, titles
+    )
     result["marker_names"] = _validate_markers(timeline, marker_specs)
     result["marker_count"] = len(result["marker_names"])
     result.update(_validate_transitions(transition_items, transitions))
@@ -616,6 +636,7 @@ def _audio_items_by_track(timeline: Any, audios: list[dict[str, Any]]) -> dict[s
 def _validate_bins(
     project: Any,
     bin_names: list[str],
+    bin_destinations: dict[str, str],
     videos: list[dict[str, Any]],
     audios: list[dict[str, Any]],
     titles: list[dict[str, Any]],
@@ -629,12 +650,18 @@ def _validate_bins(
         raise RuntimeError(f"Re-imported project missing bins {missing}")
 
     expected: dict[str, list[str]] = {name: [] for name in bin_names}
+    video_bin = bin_destinations.get("video")
     for clip in videos:
-        expected[bin_for_video(clip)].append(clip["filename"])
+        if video_bin:
+            expected[video_bin].append(clip["filename"])
     for clip in audios:
-        expected[bin_for_audio(clip)].append(clip["filename"])
+        audio_bin = bin_destinations.get(str(clip["role"]))
+        if audio_bin:
+            expected[audio_bin].append(clip["filename"])
+    graphics_bin = bin_destinations.get("graphics")
     for title in titles:
-        expected[bin_for_title(title)].append(title["filename"])
+        if graphics_bin:
+            expected[graphics_bin].append(title["filename"])
     for name, filenames in expected.items():
         actual_media = [
             item.GetName()

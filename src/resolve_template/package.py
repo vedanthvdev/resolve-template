@@ -59,7 +59,7 @@ def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
                 "source_duration_frames": duration + (2 * handle_frames),
                 "head_handle_frames": handle_frames,
                 "tail_handle_frames": handle_frames,
-                "bin": bin_for_video(clip) if has_bins else "",
+                "bin": bin_for_video(clip, story) if has_bins else "",
                 "role": "",
             }
         )
@@ -75,7 +75,7 @@ def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
                 "source_duration_frames": int(clip["duration_frames"]),
                 "head_handle_frames": 0,
                 "tail_handle_frames": 0,
-                "bin": bin_for_audio(clip) if has_bins else "",
+                "bin": bin_for_audio(clip, story) if has_bins else "",
                 "role": clip.get("role") or "",
             }
         )
@@ -91,7 +91,7 @@ def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
                 "source_duration_frames": int(title["duration_frames"]),
                 "head_handle_frames": 0,
                 "tail_handle_frames": 0,
-                "bin": bin_for_title(title) if has_bins else "",
+                "bin": bin_for_title(title, story) if has_bins else "",
                 "role": "still",
             }
         )

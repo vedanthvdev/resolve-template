@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,11 @@ from jsonschema import Draft202012Validator
 
 class StoryValidationError(ValueError):
     """A story schema error with one field path per line."""
+
+    def __init__(self, field_errors: list[str]) -> None:
+        self.field_errors = field_errors
+        details = "\n".join(f"- {error}" for error in field_errors)
+        super().__init__(f"story.yaml failed schema validation:\n{details}")
 
 
 def _story_schema() -> dict[str, Any]:
@@ -36,8 +42,9 @@ def validate_story_schema(data: Any) -> None:
     )
     if not errors:
         return
-    details = "\n".join(f"- {_schema_error_path(error)}: {error.message}" for error in errors)
-    raise StoryValidationError(f"story.yaml failed schema validation:\n{details}")
+    raise StoryValidationError(
+        [f"{_schema_error_path(error)}: {error.message}" for error in errors]
+    )
 
 
 def load_story(path: Path) -> dict[str, Any]:
@@ -45,12 +52,82 @@ def load_story(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as fh:
         data = yaml.safe_load(fh)
     validate_story_schema(data)
+    normalize_story_times(data)
     validate_contiguous_v1(data)
     validate_audio_tracks(data)
     validate_bins_and_markers(data)
     validate_transitions_and_titles(data)
     validate_unique_media_filenames(data)
     return data
+
+
+def normalize_story_times(story: dict[str, Any]) -> None:
+    """Convert seconds authoring fields to the canonical integer frame fields."""
+    fps = int(story["fps"])
+    expected_start = 0
+    for index, clip in enumerate(story["video"]):
+        _normalize_duration(clip, fps, f"story.video.{index}")
+        if "start" in clip:
+            clip["start_frame"] = _seconds_to_frames(
+                clip.pop("start"), fps, f"story.video.{index}.start", positive=False
+            )
+        elif "start_frame" not in clip:
+            clip["start_frame"] = expected_start
+        expected_start = int(clip["start_frame"]) + int(clip["duration_frames"])
+
+    timeline = story["timeline"]
+    if "duration" in timeline:
+        timeline["duration_frames"] = _seconds_to_frames(
+            timeline.pop("duration"), fps, "story.timeline.duration", positive=True
+        )
+    elif "duration_frames" not in timeline:
+        timeline["duration_frames"] = expected_start
+
+    for section in ("audio", "titles"):
+        for index, clip in enumerate(story.get(section) or []):
+            path = f"story.{section}.{index}"
+            _normalize_duration(clip, fps, path)
+            if "start" in clip:
+                clip["start_frame"] = _seconds_to_frames(
+                    clip.pop("start"), fps, f"{path}.start", positive=False
+                )
+
+    for index, marker in enumerate(story.get("markers") or []):
+        if "at" in marker:
+            marker["frame"] = _seconds_to_frames(
+                marker.pop("at"), fps, f"story.markers.{index}.at", positive=False
+            )
+
+    for index, transition in enumerate(story.get("transitions") or []):
+        if "duration" in transition:
+            transition["duration_frames"] = _seconds_to_frames(
+                transition.pop("duration"),
+                fps,
+                f"story.transitions.{index}.duration",
+                positive=True,
+            )
+
+
+def _normalize_duration(item: dict[str, Any], fps: int, path: str) -> None:
+    if "duration" in item:
+        item["duration_frames"] = _seconds_to_frames(
+            item.pop("duration"), fps, f"{path}.duration", positive=True
+        )
+
+
+def _seconds_to_frames(value: Any, fps: int, path: str, *, positive: bool) -> int:
+    raw = value[:-1] if isinstance(value, str) else value
+    seconds = Decimal(str(raw))
+    frames = seconds * fps
+    if frames != frames.to_integral_value():
+        raise StoryValidationError(
+            [f"{path}: {value!r} does not land on a whole frame at {fps} fps"]
+        )
+    result = int(frames)
+    if (positive and result <= 0) or (not positive and result < 0):
+        relation = "greater than zero" if positive else "zero or greater"
+        raise StoryValidationError([f"{path}: must be {relation}"])
+    return result
 
 
 def video_clips(story: dict[str, Any]) -> list[dict[str, Any]]:
@@ -160,12 +237,30 @@ BIN_BY_AUDIO_ROLE = {
     "sfx": "04_AUDIO_SFX",
 }
 
+DEFAULT_BIN_BY_ROLE = {
+    "video": "01_VIDEO_PLACEHOLDERS",
+    "vo": "02_AUDIO_VO",
+    "music": "03_AUDIO_MUSIC",
+    "sfx": "04_AUDIO_SFX",
+    "graphics": "05_GRAPHICS",
+    "reference": "06_REFERENCE",
+}
+
 
 def bins(story: dict[str, Any]) -> list[str]:
-    names = story.get("bins") or []
-    if not isinstance(names, list):
-        raise TypeError("story bins must be a list when present")
-    return [str(name) for name in names]
+    configured = story.get("bins") or []
+    if isinstance(configured, dict):
+        return [str(name) for name in configured.values()]
+    if isinstance(configured, list):
+        return [str(name) for name in configured]
+    raise TypeError("story bins must be a list or role-to-name mapping")
+
+
+def bin_mapping(story: dict[str, Any]) -> dict[str, str]:
+    configured = story.get("bins") or []
+    if isinstance(configured, dict):
+        return {str(role): str(name) for role, name in configured.items()}
+    return dict(zip(DEFAULT_BIN_BY_ROLE, bins(story), strict=False))
 
 
 def markers(story: dict[str, Any]) -> list[dict[str, Any]]:
@@ -175,22 +270,25 @@ def markers(story: dict[str, Any]) -> list[dict[str, Any]]:
     return items
 
 
-def bin_for_video(_clip: dict[str, Any]) -> str:
-    return "01_VIDEO_PLACEHOLDERS"
+def bin_for_video(_clip: dict[str, Any], story: dict[str, Any] | None = None) -> str:
+    if story is None:
+        return DEFAULT_BIN_BY_ROLE["video"]
+    return bin_mapping(story).get("video", "")
 
 
-def bin_for_audio(clip: dict[str, Any]) -> str:
+def bin_for_audio(clip: dict[str, Any], story: dict[str, Any] | None = None) -> str:
     role = str(clip.get("role") or "")
-    try:
+    if role not in BIN_BY_AUDIO_ROLE:
+        raise ValueError(f"audio clip {clip.get('filename')} needs role vo, music, or sfx")
+    if story is None:
         return BIN_BY_AUDIO_ROLE[role]
-    except KeyError as exc:
-        raise ValueError(f"audio clip {clip.get('filename')} needs role vo, music, or sfx") from exc
+    return bin_mapping(story).get(role, "")
 
 
 def validate_bins_and_markers(story: dict[str, Any]) -> None:
     names = bins(story)
-    if names and names != list(STANDARD_BINS):
-        raise ValueError(f"bins must be exactly {list(STANDARD_BINS)}")
+    if len(names) != len(set(names)):
+        raise ValueError("bin names must be unique")
 
     timeline_duration = int(story["timeline"]["duration_frames"])
     seen_frames: set[int] = set()
@@ -236,8 +334,10 @@ def titles(story: dict[str, Any]) -> list[dict[str, Any]]:
     return items
 
 
-def bin_for_title(_clip: dict[str, Any]) -> str:
-    return "05_GRAPHICS"
+def bin_for_title(_clip: dict[str, Any], story: dict[str, Any] | None = None) -> str:
+    if story is None:
+        return DEFAULT_BIN_BY_ROLE["graphics"]
+    return bin_mapping(story).get("graphics", "")
 
 
 def needs_transition_handles(story: dict[str, Any]) -> bool:

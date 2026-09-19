@@ -51,12 +51,11 @@ def test_full_story_roundtrip_in_resolve() -> None:
     assert validation["transition_count"] == 3
     assert validation["marker_count"] == 4
     assert validation["bin_names"] == [
-        "01_VIDEO_PLACEHOLDERS",
-        "02_AUDIO_VO",
-        "03_AUDIO_MUSIC",
-        "04_AUDIO_SFX",
-        "05_GRAPHICS",
-        "06_REFERENCE",
+        "Video Placeholders",
+        "Voice Over",
+        "Music",
+        "Sound Effects",
+        "Title Cards",
     ]
     assert validation["relinked_clip_count"] == 15
     assert Path(validation["relink_folder"]) == output.resolve() / "Placeholder_Media"

@@ -3,18 +3,28 @@
   "$id": "https://github.com/vedanthvdev/resolve-template/schemas/story-v1.schema.json",
   "title": "resolve-template story v1",
   "type": "object",
+  "$defs": {
+    "time": {
+      "oneOf": [
+        { "type": "number", "minimum": 0 },
+        { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?s$" }
+      ]
+    }
+  },
   "required": ["version", "fps", "timeline", "video"],
   "properties": {
     "version": { "const": "1" },
     "title": { "type": "string" },
-    "fps": { "type": "number", "exclusiveMinimum": 0 },
+    "fps": { "type": "integer", "minimum": 1 },
     "timeline": {
       "type": "object",
-      "required": ["name", "duration_frames"],
+      "required": ["name"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
-        "duration_frames": { "type": "integer", "minimum": 1 }
+        "duration_frames": { "type": "integer", "minimum": 1 },
+        "duration": { "$ref": "#/$defs/time" }
       },
+      "not": { "required": ["duration_frames", "duration"] },
       "additionalProperties": false
     },
     "video": {
@@ -22,14 +32,25 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["shot", "filename", "track", "start_frame", "duration_frames"],
+        "required": ["shot", "filename", "track"],
         "properties": {
           "shot": { "type": "integer", "minimum": 1 },
           "filename": { "type": "string", "minLength": 1 },
           "track": { "const": "V1" },
           "start_frame": { "type": "integer", "minimum": 0 },
-          "duration_frames": { "type": "integer", "minimum": 1 }
+          "duration_frames": { "type": "integer", "minimum": 1 },
+          "start": { "$ref": "#/$defs/time" },
+          "duration": { "$ref": "#/$defs/time" }
         },
+        "allOf": [
+          {
+            "oneOf": [
+              { "required": ["duration_frames"] },
+              { "required": ["duration"] }
+            ]
+          },
+          { "not": { "required": ["start_frame", "start"] } }
+        ],
         "additionalProperties": false
       }
     },
@@ -37,14 +58,30 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["role", "filename", "track", "start_frame", "duration_frames"],
+        "required": ["role", "filename", "track"],
         "properties": {
           "role": { "enum": ["vo", "music", "sfx"] },
           "filename": { "type": "string", "minLength": 1 },
           "track": { "enum": ["A1", "A2", "A3"] },
           "start_frame": { "type": "integer", "minimum": 0 },
-          "duration_frames": { "type": "integer", "minimum": 1 }
+          "duration_frames": { "type": "integer", "minimum": 1 },
+          "start": { "$ref": "#/$defs/time" },
+          "duration": { "$ref": "#/$defs/time" }
         },
+        "allOf": [
+          {
+            "oneOf": [
+              { "required": ["start_frame"] },
+              { "required": ["start"] }
+            ]
+          },
+          {
+            "oneOf": [
+              { "required": ["duration_frames"] },
+              { "required": ["duration"] }
+            ]
+          }
+        ],
         "additionalProperties": false
       }
     },
@@ -52,9 +89,10 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["frame", "name", "color"],
+        "required": ["name", "color"],
         "properties": {
           "frame": { "type": "integer", "minimum": 0 },
+          "at": { "$ref": "#/$defs/time" },
           "name": { "type": "string", "minLength": 1 },
           "color": {
             "enum": [
@@ -66,22 +104,34 @@
           "duration": { "type": "integer", "minimum": 1 },
           "note": { "type": "string" }
         },
+        "oneOf": [
+          { "required": ["frame"] },
+          { "required": ["at"] }
+        ],
         "additionalProperties": false
       }
     },
     "bins": {
-      "type": "array",
-      "prefixItems": [
-        { "const": "01_VIDEO_PLACEHOLDERS" },
-        { "const": "02_AUDIO_VO" },
-        { "const": "03_AUDIO_MUSIC" },
-        { "const": "04_AUDIO_SFX" },
-        { "const": "05_GRAPHICS" },
-        { "const": "06_REFERENCE" }
-      ],
-      "items": false,
-      "minItems": 6,
-      "maxItems": 6
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        {
+          "type": "object",
+          "properties": {
+            "video": { "type": "string", "minLength": 1 },
+            "vo": { "type": "string", "minLength": 1 },
+            "music": { "type": "string", "minLength": 1 },
+            "sfx": { "type": "string", "minLength": 1 },
+            "graphics": { "type": "string", "minLength": 1 },
+            "reference": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        }
+      ]
     },
     "transitions": {
       "type": "array",
@@ -95,12 +145,19 @@
           },
           "after_shot": { "type": "integer", "minimum": 1 },
           "shot": { "type": "integer", "minimum": 1 },
-          "duration_frames": { "type": "integer", "minimum": 1 }
+          "duration_frames": { "type": "integer", "minimum": 1 },
+          "duration": { "$ref": "#/$defs/time" }
         },
         "allOf": [
           {
             "if": { "properties": { "kind": { "const": "cross_dissolve" } } },
-            "then": { "required": ["after_shot", "duration_frames"] }
+            "then": {
+              "required": ["after_shot"],
+              "oneOf": [
+                { "required": ["duration_frames"] },
+                { "required": ["duration"] }
+              ]
+            }
           },
           {
             "if": {
@@ -108,7 +165,13 @@
                 "kind": { "enum": ["fade_from_black", "fade_to_black"] }
               }
             },
-            "then": { "required": ["shot", "duration_frames"] }
+            "then": {
+              "required": ["shot"],
+              "oneOf": [
+                { "required": ["duration_frames"] },
+                { "required": ["duration"] }
+              ]
+            }
           }
         ],
         "additionalProperties": false
@@ -118,14 +181,30 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["filename", "track", "start_frame", "duration_frames"],
+        "required": ["filename", "track"],
         "properties": {
           "filename": { "type": "string", "minLength": 1 },
           "text": { "type": "string" },
           "track": { "const": "V2" },
           "start_frame": { "type": "integer", "minimum": 0 },
-          "duration_frames": { "type": "integer", "minimum": 1 }
+          "duration_frames": { "type": "integer", "minimum": 1 },
+          "start": { "$ref": "#/$defs/time" },
+          "duration": { "$ref": "#/$defs/time" }
         },
+        "allOf": [
+          {
+            "oneOf": [
+              { "required": ["start_frame"] },
+              { "required": ["start"] }
+            ]
+          },
+          {
+            "oneOf": [
+              { "required": ["duration_frames"] },
+              { "required": ["duration"] }
+            ]
+          }
+        ],
         "additionalProperties": false
       }
     }
