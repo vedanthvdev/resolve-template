@@ -1,0 +1,73 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from resolve_template.cli import _print_build_summary, cmd_new
+from resolve_template.story import load_story
+
+
+def test_new_creates_the_full_story_template(tmp_path: Path) -> None:
+    target = tmp_path / "my_story"
+    assert cmd_new(target) == 0
+    canonical = (
+        Path(__file__).resolve().parents[2] / "examples" / "full_story" / "story.yaml"
+    ).read_text(encoding="utf-8")
+    assert (target / "story.yaml").read_text(encoding="utf-8") == canonical
+    story = load_story(target / "story.yaml")
+    assert len(story["video"]) == 10
+    assert {clip["track"] for clip in story["audio"]} == {"A1", "A2", "A3"}
+    assert story["bins"]
+    assert story["markers"]
+    assert story["titles"][0]["track"] == "V2"
+    assert {item["kind"] for item in story["transitions"]} == {
+        "fade_from_black",
+        "cross_dissolve",
+        "fade_to_black",
+    }
+
+
+def test_new_refuses_to_overwrite(tmp_path: Path) -> None:
+    target = tmp_path / "my_story"
+    target.mkdir()
+    story_path = target / "story.yaml"
+    story_path.write_text("keep me", encoding="utf-8")
+    assert cmd_new(target) == 1
+    assert story_path.read_text(encoding="utf-8") == "keep me"
+
+
+def test_human_build_summary_omits_internal_relink_path(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    result = {
+        "status": "VALIDATED_IN_RESOLVE",
+        "drp": "/package/project.drp",
+        "package_zip": "/package/full_story.zip",
+        "summary": {
+            "timeline_name": "PRE_EDIT_MAIN",
+            "duration_seconds": 10.0,
+            "duration_frames": 250,
+            "fps": 25.0,
+            "video_clips": 10,
+            "audio_clips": 4,
+            "audio_by_track": {"A1": 1, "A2": 1, "A3": 2},
+            "title_cards": 1,
+            "transitions": ["fade_from_black", "cross_dissolve", "fade_to_black"],
+        },
+        "validation": {"relink_folder": "/var/folders/internal"},
+    }
+    _print_build_summary(result)
+    output = capsys.readouterr().out
+    assert "DRP: /package/project.drp" in output
+    assert "ZIP: /package/full_story.zip" in output
+    assert "10 seconds" in output
+    assert "10 video, 4 audio" in output
+    assert "Open this in Resolve: /package/project.drp" in output
+    assert "/var/folders" not in output
+
+
+def test_machine_summary_stays_json_serializable() -> None:
+    result = {"status": "GENERATOR_EXISTS", "summary": {"duration_seconds": 10.0}}
+    assert json.loads(json.dumps(result)) == result

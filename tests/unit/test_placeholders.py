@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+import json
+import subprocess
+import wave
+from pathlib import Path
+
+from resolve_template.placeholders import (
+    generate_placeholder_media,
+    generate_placeholder_title_still,
+)
+
+
+def test_generated_placeholders_are_75_frames_and_three_seconds(tmp_path: Path) -> None:
+    video, audio = generate_placeholder_media(
+        tmp_path,
+        video_filename="placeholder.mp4",
+        audio_filename="placeholder.wav",
+        fps=25,
+        duration_frames=75,
+    )
+
+    probe = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-count_frames",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=nb_read_frames,r_frame_rate",
+            "-of",
+            "json",
+            str(video),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    stream = json.loads(probe.stdout)["streams"][0]
+    assert stream["nb_read_frames"] == "75"
+    assert stream["r_frame_rate"] == "25/1"
+
+    with wave.open(str(audio), "rb") as wav:
+        assert wav.getframerate() == 48_000
+        assert wav.getnchannels() == 1
+        assert wav.getnframes() == 144_000
+
+
+def test_generated_title_still_is_png(tmp_path: Path) -> None:
+    still = generate_placeholder_title_still(
+        tmp_path,
+        filename="TITLE_01_OPENING.png",
+        text="OPENING",
+    )
+    assert still.is_file()
+    assert still.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
