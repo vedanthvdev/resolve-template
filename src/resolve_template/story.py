@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from decimal import Decimal
 from importlib.resources import files
 from pathlib import Path
@@ -52,6 +53,7 @@ def load_story(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as fh:
         data = yaml.safe_load(fh)
     validate_story_schema(data)
+    normalize_story_authoring(data)
     normalize_story_times(data)
     validate_contiguous_v1(data)
     validate_audio_tracks(data)
@@ -59,6 +61,58 @@ def load_story(path: Path) -> dict[str, Any]:
     validate_transitions_and_titles(data)
     validate_unique_media_filenames(data)
     return data
+
+
+VIDEO_COLORS = ("Blue", "Green", "Yellow", "Pink", "Purple")
+
+
+def normalize_story_authoring(story: dict[str, Any]) -> None:
+    """Fill deterministic filenames, labels, and clip colors when omitted."""
+    for clip in story["video"]:
+        shot = int(clip["shot"])
+        supplied_label = clip.get("label")
+        label = str(supplied_label or f"Shot {shot:03d}")
+        clip["label"] = label
+        clip["color"] = str(clip.get("color") or VIDEO_COLORS[(shot - 1) % len(VIDEO_COLORS)])
+        filename_label = (
+            _filename_part(str(supplied_label), fallback="SHOT")
+            if supplied_label
+            else "SHOT"
+        )
+        clip.setdefault(
+            "filename",
+            f"{shot:03d}_{filename_label}_PLACEHOLDER.mp4",
+        )
+
+    role_counts: dict[str, int] = {}
+    for clip in story.get("audio") or []:
+        role = str(clip["role"])
+        role_counts[role] = role_counts.get(role, 0) + 1
+        supplied_label = clip.get("label")
+        label = str(supplied_label or role.upper())
+        clip["label"] = label
+        filename_label = (
+            f"_{_filename_part(str(supplied_label), fallback=role.upper())}"
+            if supplied_label
+            else ""
+        )
+        clip.setdefault(
+            "filename",
+            f"{role.upper()}_{role_counts[role]:02d}{filename_label}_PLACEHOLDER.wav",
+        )
+
+    for index, title in enumerate(story.get("titles") or [], start=1):
+        text = str(title.get("text") or f"Title {index:02d}")
+        title["text"] = text
+        title.setdefault(
+            "filename",
+            f"TITLE_{index:02d}_{_filename_part(text, fallback='CARD')}.mp4",
+        )
+
+
+def _filename_part(value: str, *, fallback: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_").upper()
+    return (normalized or fallback)[:48]
 
 
 def normalize_story_times(story: dict[str, Any]) -> None:
@@ -97,6 +151,15 @@ def normalize_story_times(story: dict[str, Any]) -> None:
             marker["frame"] = _seconds_to_frames(
                 marker.pop("at"), fps, f"story.markers.{index}.at", positive=False
             )
+        if "duration" in marker:
+            marker["duration_frames"] = _seconds_to_frames(
+                marker.pop("duration"),
+                fps,
+                f"story.markers.{index}.duration",
+                positive=True,
+            )
+        else:
+            marker.setdefault("duration_frames", 1)
 
     for index, transition in enumerate(story.get("transitions") or []):
         if "duration" in transition:
@@ -294,7 +357,7 @@ def validate_bins_and_markers(story: dict[str, Any]) -> None:
     seen_frames: set[int] = set()
     for marker in markers(story):
         frame = int(marker["frame"])
-        duration = int(marker.get("duration") or 1)
+        duration = int(marker["duration_frames"])
         name = marker.get("name")
         color = marker.get("color")
         if not name:
@@ -317,9 +380,6 @@ SAFE_TRANSITION_KINDS = (
     "fade_to_black",
 )
 
-TRANSITION_HANDLE_FRAMES = 12
-
-
 def transitions(story: dict[str, Any]) -> list[dict[str, Any]]:
     items = story.get("transitions") or []
     if not isinstance(items, list):
@@ -340,12 +400,33 @@ def bin_for_title(_clip: dict[str, Any], story: dict[str, Any] | None = None) ->
     return bin_mapping(story).get("graphics", "")
 
 
-def needs_transition_handles(story: dict[str, Any]) -> bool:
-    return any(item.get("kind") == "cross_dissolve" for item in transitions(story))
-
-
 def source_handle_frames(story: dict[str, Any]) -> int:
-    return TRANSITION_HANDLE_FRAMES if needs_transition_handles(story) else 0
+    handles = source_handles(story)
+    return max(
+        (max(item["head"], item["tail"]) for item in handles.values()),
+        default=0,
+    )
+
+
+def source_handles(story: dict[str, Any]) -> dict[int, dict[str, int]]:
+    """Return only the source handles each transition actually needs."""
+    result = {
+        int(clip["shot"]): {"head": 0, "tail": 0} for clip in video_clips(story)
+    }
+    for item in transitions(story):
+        kind = item.get("kind")
+        duration = int(item.get("duration_frames") or 0)
+        if kind == "cross_dissolve":
+            shot = int(item["after_shot"])
+            result[shot]["tail"] = max(result[shot]["tail"], duration)
+            result[shot + 1]["head"] = max(result[shot + 1]["head"], duration)
+        elif kind == "fade_from_black":
+            shot = int(item["shot"])
+            result[shot]["head"] = max(result[shot]["head"], duration)
+        elif kind == "fade_to_black":
+            shot = int(item["shot"])
+            result[shot]["tail"] = max(result[shot]["tail"], duration)
+    return result
 
 
 def validate_transitions_and_titles(story: dict[str, Any]) -> None:

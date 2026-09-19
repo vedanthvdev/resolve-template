@@ -13,82 +13,82 @@ markers:
   - at: 0s
     name: OPENING
     color: Blue
-    duration: 1
+    duration: 0.04s
     note: Opening title and first shot
   - at: 2s
     name: SFX_HIT_1
     color: Green
-    duration: 25
+    duration: 1s
     note: First SFX placeholder
   - at: 5s
     name: MIDPOINT
     color: Yellow
-    duration: 1
+    duration: 0.04s
     note: Midpoint transition
   - at: 9s
     name: LAST_SHOT
     color: Red
-    duration: 1
+    duration: 0.04s
     note: Final shot
 video:
   - shot: 1
-    filename: 001_SHOT_01_PLACEHOLDER.mp4
+    label: Establishing
     track: V1
     duration: 1s
   - shot: 2
-    filename: 002_SHOT_02_PLACEHOLDER.mp4
+    label: Approach
     track: V1
     duration: 1s
   - shot: 3
-    filename: 003_SHOT_03_PLACEHOLDER.mp4
+    label: Entrance
     track: V1
     duration: 1s
   - shot: 4
-    filename: 004_SHOT_04_PLACEHOLDER.mp4
+    label: Greeting
     track: V1
     duration: 1s
   - shot: 5
-    filename: 005_SHOT_05_PLACEHOLDER.mp4
+    label: Detail
     track: V1
     duration: 1s
   - shot: 6
-    filename: 006_SHOT_06_PLACEHOLDER.mp4
+    label: Interview
     track: V1
     duration: 1s
   - shot: 7
-    filename: 007_SHOT_07_PLACEHOLDER.mp4
+    label: B-Roll
     track: V1
     duration: 1s
   - shot: 8
-    filename: 008_SHOT_08_PLACEHOLDER.mp4
+    label: Reaction
     track: V1
     duration: 1s
   - shot: 9
-    filename: 009_SHOT_09_PLACEHOLDER.mp4
+    label: Closing Beat
     track: V1
     duration: 1s
   - shot: 10
-    filename: 010_SHOT_10_PLACEHOLDER.mp4
+    label: End Frame
     track: V1
     duration: 1s
 audio:
   - role: vo
-    filename: VO_01_BED_PLACEHOLDER.wav
+    label: Narration
     track: A1
     start: 0s
     duration: 10s
   - role: music
-    filename: MUSIC_01_BED_PLACEHOLDER.wav
+    label: Bed
     track: A2
     start: 0s
     duration: 10s
   - role: sfx
-    filename: SFX_01_HIT_PLACEHOLDER.wav
+    label: Hit 1
     track: A3
     start: 2s
     duration: 1s
   - role: sfx
-    filename: SFX_02_HIT_PLACEHOLDER.wav
+    label: Hit 2
     track: A3
     start: 7s
     duration: 1s
@@ -103,8 +103,7 @@ transitions:
     shot: 10
     duration: 0.24s
 titles:
-  - filename: TITLE_CARD_01_OPENING.mp4
-    text: OPENING
+  - text: OPENING
     track: V2
     start: 0s
     duration: 2s

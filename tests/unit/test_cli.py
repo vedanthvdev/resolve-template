@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from resolve_template import cli
 from resolve_template.cli import _print_build_summary, build_parser, cmd_new, main
 from resolve_template.story import load_story
 
@@ -52,8 +53,11 @@ def test_human_build_summary_omits_internal_relink_path(
         "package_zip": "/package/full_story.zip",
         "summary": {
             "timeline_name": "PRE_EDIT_MAIN",
-            "duration_seconds": 10.0,
-            "duration_frames": 250,
+            "duration_seconds": 10.24,
+            "duration_frames": 256,
+            "picture_duration_seconds": 10.0,
+            "picture_duration_frames": 250,
+            "fade_tail_frames": 6,
             "fps": 25.0,
             "video_clips": 10,
             "audio_clips": 4,
@@ -68,6 +72,7 @@ def test_human_build_summary_omits_internal_relink_path(
     assert "DRP: /package/project.drp" in output
     assert "ZIP: /package/full_story.zip" in output
     assert "10 seconds" in output
+    assert "10.24 seconds including 6 fade-tail frames" in output
     assert "10 video, 4 audio" in output
     assert "Open this in Resolve: /package/project.drp" in output
     assert "/var/folders" not in output
@@ -101,3 +106,19 @@ video: []
     assert "story.fps:" in error
     assert "Traceback" not in error
     assert "story.yaml failed schema validation" not in error
+
+
+def test_new_can_build_immediately(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "cafe"
+    output = tmp_path / "package"
+    called: list[tuple[Path, Path, bool]] = []
+
+    def fake_build(story: Path, build_output: Path, overwrite: bool) -> int:
+        called.append((story, build_output, overwrite))
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_resolve_build", fake_build)
+    assert cmd_new(target, build=True, output=output) == 0
+    assert called == [(target / "story.yaml", output, False)]

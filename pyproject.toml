@@ -13,6 +13,7 @@ authors = [{ name = "resolve-template contributors" }]
 dependencies = [
   "pyyaml>=6.0",
   "jsonschema>=4.0",
+  "pillow>=10.0",
 ]
 
 [project.optional-dependencies]

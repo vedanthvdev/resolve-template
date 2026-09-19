@@ -32,10 +32,12 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["shot", "filename", "track"],
+        "required": ["shot", "track"],
         "properties": {
           "shot": { "type": "integer", "minimum": 1 },
           "filename": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 },
+          "color": { "enum": ["Blue", "Green", "Yellow", "Pink", "Purple"] },
           "track": { "const": "V1" },
           "start_frame": { "type": "integer", "minimum": 0 },
           "duration_frames": { "type": "integer", "minimum": 1 },
@@ -58,10 +60,11 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["role", "filename", "track"],
+        "required": ["role", "track"],
         "properties": {
           "role": { "enum": ["vo", "music", "sfx"] },
           "filename": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 },
           "track": { "enum": ["A1", "A2", "A3"] },
           "start_frame": { "type": "integer", "minimum": 0 },
           "duration_frames": { "type": "integer", "minimum": 1 },
@@ -101,12 +104,18 @@
               "Sand", "Cocoa", "Cream"
             ]
           },
-          "duration": { "type": "integer", "minimum": 1 },
+          "duration_frames": { "type": "integer", "minimum": 1 },
+          "duration": { "$ref": "#/$defs/time" },
           "note": { "type": "string" }
         },
-        "oneOf": [
-          { "required": ["frame"] },
-          { "required": ["at"] }
+        "allOf": [
+          {
+            "oneOf": [
+              { "required": ["frame"] },
+              { "required": ["at"] }
+            ]
+          },
+          { "not": { "required": ["duration_frames", "duration"] } }
         ],
         "additionalProperties": false
       }
@@ -181,7 +190,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["filename", "track"],
+        "required": ["track"],
         "properties": {
           "filename": { "type": "string", "minLength": 1 },
           "text": { "type": "string" },

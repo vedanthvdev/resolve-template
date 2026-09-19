@@ -56,3 +56,17 @@ def test_generated_title_still_is_png(tmp_path: Path) -> None:
     )
     assert still.is_file()
     assert still.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_title_text_changes_rendered_pixels(tmp_path: Path) -> None:
+    opening = generate_placeholder_title_still(
+        tmp_path,
+        filename="opening.png",
+        text="THE CAFE",
+    )
+    closing = generate_placeholder_title_still(
+        tmp_path,
+        filename="closing.png",
+        text="THANK YOU",
+    )
+    assert opening.read_bytes() != closing.read_bytes()

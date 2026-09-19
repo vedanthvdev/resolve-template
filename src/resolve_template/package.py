@@ -13,7 +13,7 @@ from resolve_template.story import (
     bin_for_video,
     bins,
     markers,
-    source_handle_frames,
+    source_handles,
     titles,
     transitions,
     video_clips,
@@ -45,8 +45,9 @@ def write_package_sidecars(output: Path, story: dict[str, Any]) -> dict[str, Pat
 def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     has_bins = bool(bins(story))
-    handle_frames = source_handle_frames(story)
+    handles = source_handles(story)
     for clip in video_clips(story):
+        clip_handles = handles[int(clip["shot"])]
         duration = int(clip["duration_frames"])
         rows.append(
             {
@@ -56,9 +57,11 @@ def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
                 "track": clip["track"],
                 "start_frame": int(clip["start_frame"]),
                 "duration_frames": duration,
-                "source_duration_frames": duration + (2 * handle_frames),
-                "head_handle_frames": handle_frames,
-                "tail_handle_frames": handle_frames,
+                "source_duration_frames": (
+                    duration + clip_handles["head"] + clip_handles["tail"]
+                ),
+                "head_handle_frames": clip_handles["head"],
+                "tail_handle_frames": clip_handles["tail"],
                 "bin": bin_for_video(clip, story) if has_bins else "",
                 "role": "",
             }
@@ -112,7 +115,7 @@ def write_timeline_map(path: Path, story: dict[str, Any]) -> None:
         "",
         f"- fps: {story['fps']}",
         f"- duration_frames: {timeline['duration_frames']}",
-        f"- source_handle_frames: {source_handle_frames(story)} per end for V1 media",
+        "- source handles: only the head/tail frames required by each transition",
         "",
         "## Video V1",
         "",
