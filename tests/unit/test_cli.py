@@ -31,8 +31,24 @@ def test_new_creates_the_full_story_template(
         "fade_to_black",
     }
     output = capsys.readouterr().out
+    assert "Created full_story template:" in output
     assert f"resolve-template resolve-build {target / 'story.yaml'}" in output
     assert f"--output output/{target.name} --force" in output
+
+
+def test_new_can_write_the_baby_shower_template(tmp_path: Path) -> None:
+    target = tmp_path / "shower"
+    assert cmd_new(target, template="baby_shower") == 0
+    canonical = (
+        Path(__file__).resolve().parents[2] / "examples" / "baby_shower" / "story.yaml"
+    ).read_text(encoding="utf-8")
+    assert (target / "story.yaml").read_text(encoding="utf-8") == canonical
+    story = load_story(target / "story.yaml")
+    assert story["timeline"]["name"] == "BABY_SHOWER_PRE_EDIT"
+    assert len(story["video"]) == 28
+    assert story["timeline"]["duration_frames"] == 3750
+    assert {clip["track"] for clip in story["audio"]} == {"A1", "A2", "A3"}
+    assert len(story["titles"]) == 3
 
 
 def test_new_refuses_to_overwrite(tmp_path: Path) -> None:

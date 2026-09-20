@@ -192,6 +192,16 @@ def test_packaged_schema_matches_public_schema() -> None:
     assert packaged == public
 
 
+def test_packaged_story_templates_match_examples() -> None:
+    root = Path(__file__).resolve().parents[2]
+    for name in ("full_story", "baby_shower"):
+        example = (root / "examples" / name / "story.yaml").read_text(encoding="utf-8")
+        packaged = (root / "src" / "resolve_template" / f"{name}.yaml").read_text(
+            encoding="utf-8"
+        )
+        assert packaged == example
+
+
 def test_duplicate_media_filenames_are_rejected() -> None:
     story = {
         "fps": 25,

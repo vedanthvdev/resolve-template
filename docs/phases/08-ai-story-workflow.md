@@ -19,6 +19,10 @@ ten labeled, color-coded V1 clips, named A1–A3 tracks, five custom bins, marke
 three semantic transition roles, and one generated title-card MP4 with visible
 text on V2. Filenames and sequential V1 starts are derived.
 
+`examples/baby_shower/story.yaml` is a longer event-film template: 28 labeled
+V1 shots, interview VO, two music beds, SFX, act titles, and custom bins. Create
+it with `resolve-template new --template baby_shower`.
+
 `load_story` enforces the packaged JSON Schema first and reports field paths.
 Semantic validators then enforce contiguous V1 coverage and transition targets.
 
@@ -32,3 +36,7 @@ Semantic validators then enforce contiguous V1 coverage and transition targets.
 - timeline stored in Master with named Picture, Titles, VO, Music, and SFX tracks
 - 1 generated title card with visible text on V2
 - 15 media items relinked to the package’s persistent `Placeholder_Media/`
+
+`examples/baby_shower/story.yaml` also round-tripped on 2026-09-20: 28 V1 clips,
+15 A1–A3 clips, 3 title cards, 10 markers, 4 transitions, custom bins, picture
+150s plus a 1.2s fade tail, and 46 media items relinked.

@@ -20,7 +20,9 @@ This project aims to produce a **genuine** `.drp` by driving Resolve’s officia
 | Optional V1/A4 linked production audio | **Validated** on Studio 21.1.0 |
 
 See [docs/phases/README.md](docs/phases/README.md) for the build order. The canonical
-template is [`examples/full_story/story.yaml`](examples/full_story/story.yaml).
+10-shot template is [`examples/full_story/story.yaml`](examples/full_story/story.yaml).
+A longer event-film template is
+[`examples/baby_shower/story.yaml`](examples/baby_shower/story.yaml).
 
 ## Phased plan
 
@@ -41,6 +43,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/resolve-template doctor
 .venv/bin/resolve-template new my_story --build
+.venv/bin/resolve-template new --template baby_shower --build
 .venv/bin/resolve-template resolve-build examples/full_story/story.yaml \
   --output output/full_story --force
 ```
