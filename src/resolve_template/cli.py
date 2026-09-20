@@ -187,6 +187,7 @@ def cmd_doctor(as_json: bool = False) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from resolve_template.resolve.roundtrip import UnsafeOutputError
     from resolve_template.story import StoryValidationError
 
     parser = build_parser()
@@ -213,6 +214,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     except FileExistsError as exc:
         print(f"{exc} Rerun with --force.", file=sys.stderr)
+        return 2
+    except UnsafeOutputError as exc:
+        print(str(exc), file=sys.stderr)
         return 2
 
 

@@ -54,6 +54,10 @@ TRACK_NAMES = {
 }
 
 
+class UnsafeOutputError(ValueError):
+    """Raised before a build could remove an unsafe output artifact."""
+
+
 def resolve_build(
     story_path: Path,
     *,
@@ -73,13 +77,20 @@ def resolve_build(
     if output.exists():
         if not overwrite:
             raise FileExistsError(f"Output already exists: {output}.")
+        _require_safe_output_removal(story_path, output)
+
+    package_zip = output.with_suffix(".zip")
+    if package_zip.exists() and not overwrite:
+        raise FileExistsError(f"Package already exists: {package_zip}.")
+    _require_distinct_artifact_paths(story_path, output, package_zip)
+    if overwrite and package_zip.exists():
+        _require_safe_package_removal(story_path, package_zip)
+
+    if output.exists():
         shutil.rmtree(output)
     output.mkdir(parents=True)
 
-    package_zip = output.with_suffix(".zip")
     if package_zip.exists():
-        if not overwrite:
-            raise FileExistsError(f"Package already exists: {package_zip}.")
         package_zip.unlink()
 
     timeline_spec = story["timeline"]
@@ -193,6 +204,49 @@ def resolve_build(
         "summary": summary,
         "validation": validation,
     }
+
+
+def _require_safe_output_removal(story_path: Path, output: Path) -> None:
+    if output.is_symlink():
+        raise UnsafeOutputError(
+            f"Refusing to overwrite symlinked output directory: {output}"
+        )
+    if not output.is_dir():
+        raise UnsafeOutputError(f"Refusing to overwrite non-directory output: {output}")
+
+    resolved_output = output.resolve()
+    resolved_story = story_path.resolve()
+    cwd = Path.cwd().resolve()
+    home = Path.home().resolve()
+    protected = (
+        resolved_output.parent == resolved_output
+        or resolved_output == home
+        or resolved_story.is_relative_to(resolved_output)
+        or cwd.is_relative_to(resolved_output)
+    )
+    if protected:
+        raise UnsafeOutputError(f"Refusing to overwrite unsafe output directory: {output}")
+
+
+def _require_distinct_artifact_paths(
+    story_path: Path, output: Path, package_zip: Path
+) -> None:
+    resolved_story = story_path.resolve()
+    resolved_output = output.resolve()
+    resolved_package = package_zip.resolve()
+    if resolved_package in (resolved_story, resolved_output):
+        raise UnsafeOutputError(
+            "Output directory, package ZIP, and source story must use distinct paths"
+        )
+
+
+def _require_safe_package_removal(story_path: Path, package_zip: Path) -> None:
+    if package_zip.is_dir():
+        raise UnsafeOutputError(f"Refusing to overwrite package directory: {package_zip}")
+    if package_zip.resolve() == story_path.resolve():
+        raise UnsafeOutputError(
+            f"Refusing to overwrite source story as package: {package_zip}"
+        )
 
 
 @contextmanager

@@ -9,6 +9,10 @@ from resolve_template.resolve.roundtrip import (
     _apply_timeline_format,
     _import_media,
     _prepare_project_manager,
+    _require_distinct_artifact_paths,
+    _require_safe_output_removal,
+    _require_safe_package_removal,
+    resolve_build,
 )
 
 
@@ -82,3 +86,89 @@ def test_timeline_format_rejects_silent_setting_failure() -> None:
     with pytest.raises(RuntimeError, match="timelineResolutionWidth=3840"):
         _apply_timeline_format(timeline, width=3840, height=2160)
     assert calls[-1] == ("timelineResolutionWidth", "3840")
+
+
+def test_force_refuses_to_delete_directory_containing_story(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    story = source / "story.yaml"
+    story.write_text(
+        """
+version: "1"
+fps: 25
+timeline:
+  name: SAFE
+  duration_frames: 25
+video:
+  - shot: 1
+    track: V1
+    start_frame: 0
+    duration_frames: 25
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unsafe output directory"):
+        resolve_build(story, output=source, overwrite=True)
+    assert story.is_file()
+
+
+@pytest.mark.parametrize("target", [Path("/"), Path.home(), Path.cwd()])
+def test_unsafe_output_roots_are_rejected(target: Path, tmp_path: Path) -> None:
+    story = tmp_path / "story.yaml"
+    story.touch()
+    with pytest.raises(ValueError, match="unsafe output directory"):
+        _require_safe_output_removal(story, target)
+
+
+def test_symlinked_output_is_rejected(tmp_path: Path) -> None:
+    story = tmp_path / "story.yaml"
+    story.touch()
+    target = tmp_path / "target"
+    target.mkdir()
+    output = tmp_path / "output"
+    output.symlink_to(target, target_is_directory=True)
+    with pytest.raises(ValueError, match="symlinked output directory"):
+        _require_safe_output_removal(story, output)
+
+
+def test_package_cannot_replace_source_story(tmp_path: Path) -> None:
+    story = tmp_path / "story.zip"
+    story.touch()
+    output = tmp_path / "story.build"
+    with pytest.raises(ValueError, match="distinct paths"):
+        _require_distinct_artifact_paths(story, output, output.with_suffix(".zip"))
+
+
+def test_package_directory_is_not_unlinked(tmp_path: Path) -> None:
+    story = tmp_path / "story.yaml"
+    story.touch()
+    package = tmp_path / "output.zip"
+    package.mkdir()
+    with pytest.raises(ValueError, match="package directory"):
+        _require_safe_package_removal(story, package)
+
+
+def test_existing_package_fails_before_output_is_created(tmp_path: Path) -> None:
+    story = tmp_path / "story.yaml"
+    story.write_text(
+        """
+version: "1"
+fps: 25
+timeline:
+  name: SAFE
+  duration_frames: 25
+video:
+  - shot: 1
+    track: V1
+    start_frame: 0
+    duration_frames: 25
+""",
+        encoding="utf-8",
+    )
+    output = tmp_path / "output"
+    output.with_suffix(".zip").touch()
+
+    with pytest.raises(FileExistsError, match="Package already exists"):
+        resolve_build(story, output=output)
+    assert not output.exists()

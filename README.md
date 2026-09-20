@@ -76,7 +76,8 @@ bins:
 ```
 
 Frame fields remain supported for exact control. `--overwrite` remains an alias
-for `--force`.
+for `--force`; destructive targets such as the workspace, home directory,
+filesystem root, symlinks, or a directory containing the source story are refused.
 
 `doctor` checks conventional Resolve locations on macOS, Windows, and Linux.
 Use `RESOLVE_APP_PATH` and `RESOLVE_SCRIPT_API` for custom installs.
