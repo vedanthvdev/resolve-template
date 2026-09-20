@@ -16,7 +16,8 @@ checks then enforce contiguous V1 placement and valid transition targets.
 
 Models may author `start`, `duration`, marker `at`, marker `duration`, and
 transition `duration` in seconds (`2s`, `0.24s`). V1 starts, timeline duration,
-media filenames, labels, and clip colors are derived when omitted. `bins` may
+media filenames, labels, and clip colors are derived when omitted. Timeline
+clips are named from those labels. `bins` may
 be omitted or supplied as a partial role-to-name mapping; the canonical full
 story demonstrates the preferred form.
 

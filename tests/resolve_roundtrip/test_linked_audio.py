@@ -59,8 +59,6 @@ def test_linked_audio_roundtrip_in_resolve() -> None:
     assert result["status"] == "VALIDATED_IN_RESOLVE"
     assert validation["video_items_v1"] == 2
     assert validation["audio_items_a4"] == 1
-    assert validation["production_audio_names"] == [
-        "001_CAMERA_WITH_SCRATCH_AUDIO_PLACEHOLDER.mp4"
-    ]
+    assert validation["production_audio_names"] == ["Camera With Scratch Audio (cam)"]
     assert validation["linked_production_audio"] == [True]
     assert validation["track_names"]["A4"] == "Production"

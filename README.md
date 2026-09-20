@@ -57,8 +57,8 @@ Schema failures print field paths without a Python traceback.
 - Use seconds such as `start: 2s` and `duration: 1.48s`; values must land on a
   whole frame at the selected fps.
 - Omit media filenames to derive safe names from shot numbers, roles, and labels.
-- Add video `label` and optional `color`; Resolve receives colored clips with
-  labeled clip markers.
+- Add video `label` and optional `color`; Resolve timeline clips are named and
+  colored from those fields, with labeled clip markers as a backup.
 - Set video `linked_audio: true` to generate silent camera audio, place it on
   named A4 `Production`, and link it to the V1 clip.
 - Omit V1 `start` values to place shots sequentially.

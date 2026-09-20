@@ -193,6 +193,8 @@ Only `Project.SetSettings({"timelineFrameRate": 25.0})` was required. A combined
   bins, 4 markers, 3 transition roles, and 1 generated title card on V2
 - Timeline remained in Master; tracks remained named Picture, Titles, VO,
   Music, and SFX
+- `TimelineItem.SetName` persisted clip labels through export/re-import; media-pool
+  filenames stayed as generated files for relink
 - All 15 media items relinked to the persistent package media folder
 - `examples/baby_shower/story.yaml` later proved a 28-shot event-film cut on the
   same path: 150s picture, 1.2s fade tail, 15 A1–A3 beds, 3 titles, 10 markers,

@@ -38,8 +38,8 @@ def test_one_clip_roundtrip_in_resolve() -> None:
     assert validation["fps"] == 25.0
     assert validation["video_items_v1"] == 1
     assert validation["audio_items_a1"] == 1
-    assert validation["video_name"] == "001_OPENING_PLACEHOLDER.mp4"
-    assert validation["audio_name"] == "VO_01_OPENING_PLACEHOLDER.wav"
+    assert validation["video_name"] == "Shot 001"
+    assert validation["audio_name"] == "VO"
     assert validation["video_duration_frames"] == 75
     assert validation["audio_duration_frames"] == 75
     assert validation["gaps"] == []
