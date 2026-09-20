@@ -45,5 +45,5 @@ Generated package: `output/poc_ten_clips.zip` (ignored by git).
 ## Notes
 
 - Story validation rejects V1 gaps, shot-number skips, and timeline duration that does not match clip coverage.
-- Each shot is a generated 1280×720 black MP4 (1 second at 25 fps). No real camera media.
+- Each shot is a generated 1920×1080 color MP4 (1 second at 25 fps). No real camera media.
 - Phase 4 may add silent A1/A2/A3 beds; they were intentionally omitted here.

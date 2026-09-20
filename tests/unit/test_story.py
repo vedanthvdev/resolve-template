@@ -30,6 +30,31 @@ def test_ten_clip_story_is_contiguous() -> None:
     assert story["video"][0]["shot"] == 1
     assert story["video"][-1]["shot"] == 10
     assert story["video"][-1]["filename"] == "010_SHOT_10_PLACEHOLDER.mp4"
+    assert story["width"] == 1920
+    assert story["height"] == 1080
+
+
+def test_story_accepts_4k_frame_size(tmp_path: Path) -> None:
+    path = tmp_path / "4k.yaml"
+    path.write_text(
+        """
+version: "1"
+fps: 25
+width: 3840
+height: 2160
+timeline:
+  name: UHD
+  duration: 1s
+video:
+  - shot: 1
+    track: V1
+    start: 0s
+    duration: 1s
+""",
+        encoding="utf-8",
+    )
+    story = load_story(path)
+    assert (story["width"], story["height"]) == (3840, 2160)
 
 
 def test_gap_in_v1_is_rejected() -> None:

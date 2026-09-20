@@ -126,11 +126,11 @@ Do not copy these blindly into the 25 fps POC. Useful keys:
 
 Phase 2 spec wants **25 fps**, 75 frames, timeline name `PRE_EDIT_MAIN`.
 
-Only `Project.SetSettings({"timelineFrameRate": 25.0})` was required. A combined update containing playback rate and resolution returned false, so settings are not batch-assumed.
+Only `Project.SetSettings({"timelineFrameRate": 25.0})` was required for the Phase 2 720p proof. A combined update containing playback rate and resolution returned false, so settings are not batch-assumed. Later HD builds set fps first, then `timelineResolutionWidth` / `timelineResolutionHeight` separately.
 
 ## Phase 2 validated result
 
-- Generated video: black H.264 MP4, 1280×720, 25 fps, exactly 75 frames
+- Generated video: black H.264 MP4, 1280×720, 25 fps, exactly 75 frames (later packages default to 1920×1080)
 - Generated audio: mono PCM WAV, 48 kHz, 144,000 silent samples (3 seconds)
 - Timeline: `PRE_EDIT_MAIN`
 - Re-import: one 75-frame item on V1 and one 75-frame item on A1 with expected names
