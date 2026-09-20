@@ -16,6 +16,20 @@ STORY_TEMPLATES = {
 }
 
 
+class _ForceStoryAndOutput(argparse.Action):
+    """Legacy `new --force`, which replaced both the story and the build output."""
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
+        namespace.force_story = True
+        namespace.force_output = True
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="resolve-template",
@@ -46,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
         "directory",
         type=Path,
         nargs="?",
-        help="Directory to create (default: the template name)",
+        help="Directory to create (default: output/stories/<template>)",
     )
     new_p.add_argument(
         "--template",
@@ -54,7 +68,22 @@ def build_parser() -> argparse.ArgumentParser:
         default="full_story",
         help="Story template to write (default: full_story)",
     )
-    new_p.add_argument("--force", action="store_true", help="Replace an existing story.yaml")
+    new_p.add_argument(
+        "--force-story",
+        action="store_true",
+        help="Replace an existing story.yaml",
+    )
+    new_p.add_argument(
+        "--force-output",
+        action="store_true",
+        help="Replace existing build output without replacing story.yaml",
+    )
+    new_p.add_argument(
+        "--force",
+        nargs=0,
+        action=_ForceStoryAndOutput,
+        help=argparse.SUPPRESS,
+    )
     new_p.add_argument(
         "--build",
         action="store_true",
@@ -63,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     new_p.add_argument(
         "--output",
         type=Path,
-        help="Build output directory (default: output/<story-directory>)",
+        help="Build output directory (default: output/packages/<story-directory>)",
     )
 
     doctor_p = sub.add_parser("doctor", help="Check Python, ffmpeg, Resolve, and scripting")
@@ -138,27 +167,40 @@ def _print_build_summary(result: dict[str, Any]) -> None:
 
 def cmd_new(
     directory: Path | None = None,
-    force: bool = False,
+    force_story: bool = False,
     *,
     template: str = "full_story",
     build: bool = False,
     output: Path | None = None,
+    force_output: bool = False,
 ) -> int:
     if template not in STORY_TEMPLATES:
         print(f"Unknown template {template!r}.", file=sys.stderr)
         return 2
-    directory = directory or Path(template)
+    directory = directory or Path("output") / "stories" / template
     story_path = directory / "story.yaml"
-    if story_path.exists() and not force:
-        print(f"Refusing to overwrite {story_path}; pass --force.", file=sys.stderr)
-        return 1
-    directory.mkdir(parents=True, exist_ok=True)
-    resource = files("resolve_template").joinpath(STORY_TEMPLATES[template])
-    story_path.write_text(resource.read_text(encoding="utf-8"), encoding="utf-8")
-    print(f"Created {template} template: {story_path.resolve()}")
-    build_output = output or Path("output") / directory.name
+    if story_path.exists() and not force_story:
+        if not build:
+            print(
+                f"Refusing to overwrite {story_path}; pass --force-story.",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"Using existing story: {story_path.resolve()}")
+    else:
+        directory.mkdir(parents=True, exist_ok=True)
+        resource = files("resolve_template").joinpath(STORY_TEMPLATES[template])
+        story_path.write_text(resource.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"Created {template} template: {story_path.resolve()}")
+    build_output = output or Path("output") / "packages" / (
+        directory.name or directory.resolve().name
+    )
     if build:
-        return cmd_resolve_build(story_path, build_output, force)
+        try:
+            return cmd_resolve_build(story_path, build_output, force_output)
+        except FileExistsError as exc:
+            print(f"{exc} Rerun with --force-output.", file=sys.stderr)
+            return 2
     print(
         f"Build it: resolve-template resolve-build {story_path} "
         f"--output {build_output} --force"
@@ -200,10 +242,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "new":
             return cmd_new(
                 args.directory,
-                args.force,
+                args.force_story,
                 template=args.template,
                 build=args.build,
                 output=args.output,
+                force_output=args.force_output,
             )
         if args.command == "doctor":
             return cmd_doctor(args.json)

@@ -3,7 +3,12 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from resolve_template.package import TRACKER_FIELDS, tracker_rows, write_shot_tracker
+from resolve_template.package import (
+    TRACKER_FIELDS,
+    tracker_rows,
+    write_shot_tracker,
+    write_timeline_map,
+)
 from resolve_template.story import load_story
 
 
@@ -64,3 +69,16 @@ def test_tracker_records_cross_dissolve_source_handles() -> None:
     assert video_row["source_duration_frames"] == 62
     assert video_row["head_handle_frames"] == 6
     assert video_row["tail_handle_frames"] == 6
+
+
+def test_timeline_map_explains_source_handle_duration(tmp_path: Path) -> None:
+    story = load_story(
+        Path(__file__).resolve().parents[2]
+        / "examples"
+        / "poc_transitions_titles"
+        / "story.yaml"
+    )
+    path = tmp_path / "timeline_map.md"
+    write_timeline_map(path, story)
+    text = path.read_text(encoding="utf-8")
+    assert "timeline 2s / source 2.48s; handles 6f head + 6f tail" in text

@@ -7,6 +7,7 @@ import pytest
 
 from resolve_template.resolve.roundtrip import (
     _apply_timeline_format,
+    _apply_timeline_labels,
     _import_media,
     _prepare_project_manager,
     _require_distinct_artifact_paths,
@@ -86,6 +87,36 @@ def test_timeline_format_rejects_silent_setting_failure() -> None:
     with pytest.raises(RuntimeError, match="timelineResolutionWidth=3840"):
         _apply_timeline_format(timeline, width=3840, height=2160)
     assert calls[-1] == ("timelineResolutionWidth", "3840")
+
+
+def _labelled_marker(color: str) -> tuple[object, ...]:
+    markers: list[tuple[object, ...]] = []
+    item = SimpleNamespace(
+        SetName=lambda _name: True,
+        GetName=lambda: "Interview",
+        SetClipColor=lambda value: value == color,
+        AddMarker=lambda *args: markers.append(args) or True,
+    )
+    _apply_timeline_labels(
+        [item],
+        [
+            {
+                "shot": 1,
+                "filename": "interview.mp4",
+                "label": "Interview",
+                "color": color,
+            }
+        ],
+    )
+    return markers[0]
+
+
+def test_clip_only_color_falls_back_to_a_valid_marker_color() -> None:
+    assert _labelled_marker("Orange") == (0, "Blue", "Interview", "Shot 1", 1)
+
+
+def test_shared_color_still_labels_the_marker_to_match_the_clip() -> None:
+    assert _labelled_marker("Purple") == (0, "Purple", "Interview", "Shot 1", 1)
 
 
 def test_force_refuses_to_delete_directory_containing_story(tmp_path: Path) -> None:

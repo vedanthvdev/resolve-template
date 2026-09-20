@@ -29,7 +29,7 @@ def test_full_story_builds_without_resolve(
         "picture_duration_seconds": 10.0,
         "fade_tail_frames": 6,
         "video_clips": 10,
-        "linked_video_clips": 0,
+        "linked_video_clips": 1,
         "audio_clips": 4,
         "audio_by_track": {"A1": 1, "A2": 1, "A3": 2},
         "title_cards": 1,
@@ -55,6 +55,9 @@ def test_full_story_roundtrip_in_resolve() -> None:
     assert validation["audio_items_a1"] == 1
     assert validation["audio_items_a2"] == 1
     assert validation["audio_items_a3"] == 2
+    assert validation["audio_items_a4"] == 1
+    assert validation["production_audio_names"] == ["Interview (cam)"]
+    assert validation["linked_production_audio"] == [True]
     assert validation["title_names"] == ["OPENING"]
     assert validation["timeline_folder"] == "Master"
     assert validation["track_names"] == {
@@ -63,12 +66,13 @@ def test_full_story_roundtrip_in_resolve() -> None:
         "A1": "VO",
         "A2": "Music",
         "A3": "SFX",
+        "A4": "Production",
     }
     assert validation["picture_duration_frames"] == 250
     assert validation["timeline_duration_frames"] == 256
     assert validation["shot_labels"][:3] == ["Establishing", "Approach", "Entrance"]
     assert validation["video_names"][:3] == ["Establishing", "Approach", "Entrance"]
-    assert len(set(validation["clip_colors"])) == 5
+    assert len(set(validation["clip_colors"])) == 10
     assert validation["transition_count"] == 3
     assert validation["marker_count"] == 4
     assert validation["bin_names"] == [

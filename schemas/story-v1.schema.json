@@ -39,7 +39,13 @@
           "shot": { "type": "integer", "minimum": 1 },
           "filename": { "type": "string", "minLength": 1 },
           "label": { "type": "string", "minLength": 1 },
-          "color": { "enum": ["Blue", "Green", "Yellow", "Pink", "Purple"] },
+          "color": {
+            "enum": [
+              "Orange", "Apricot", "Yellow", "Lime", "Olive", "Green",
+              "Teal", "Navy", "Blue", "Purple", "Violet", "Pink",
+              "Tan", "Beige", "Brown", "Chocolate"
+            ]
+          },
           "linked_audio": { "type": "boolean" },
           "track": { "const": "V1" },
           "start_frame": { "type": "integer", "minimum": 0 },

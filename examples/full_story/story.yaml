@@ -55,6 +55,7 @@ video:
     label: Interview
     track: V1
     duration: 1s
+    linked_audio: true
   - shot: 7
     label: B-Roll
     track: V1

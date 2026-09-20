@@ -47,12 +47,26 @@ python3 -m venv .venv
 .venv/bin/resolve-template new my_story --build
 .venv/bin/resolve-template new --template baby_shower --build
 .venv/bin/resolve-template resolve-build examples/full_story/story.yaml \
-  --output output/full_story --force
+  --output output/packages/full_story --force
 ```
 
 The build command prints the DRP path, ZIP path, timeline duration, clip counts,
 and what to open in Resolve. Use `--json` only for machine-readable output.
 Schema failures print field paths without a Python traceback.
+When `new` has no directory, it writes `story.yaml` under
+`output/stories/<template>` instead of adding a template directory to the
+current workspace. Its generated `.drp`, sidecars, placeholder media, and ZIP
+live under `output/packages/<template>`.
+
+To rebuild an existing story, preserve its YAML and replace only its generated
+artifacts:
+
+```bash
+.venv/bin/resolve-template new output/stories/cafe --build --force-output
+```
+
+Use `--force-story` only when the selected template should replace the authored
+`story.yaml`.
 
 ## Easier story authoring
 
@@ -60,9 +74,12 @@ Schema failures print field paths without a Python traceback.
   whole frame at the selected fps.
 - Omit media filenames to derive safe names from shot numbers, roles, and labels.
 - Add video `label` and optional `color`; Resolve timeline clips are named and
-  colored from those fields, with labeled clip markers as a backup.
+  colored from those fields, with labeled clip markers as a backup. All 16
+  Resolve clip colors are accepted, from `Orange` through `Chocolate`.
 - Set video `linked_audio: true` to generate silent camera audio, place it on
   named A4 `Production`, and link it to the V1 clip.
+- Read `timeline_map.md` for both timeline duration and longer source duration;
+  transition handles intentionally remain visible in the Media Pool.
 - Omit V1 `start` values to place shots sequentially.
 - Omit `timeline.duration_frames` to derive it from V1.
 - Use seconds for marker `at` and `duration` too.
@@ -75,9 +92,10 @@ bins:
   graphics: Title Cards
 ```
 
-Frame fields remain supported for exact control. `--overwrite` remains an alias
-for `--force`; destructive targets such as the workspace, home directory,
-filesystem root, symlinks, or a directory containing the source story are refused.
+Frame fields remain supported for exact control. On `resolve-build`, `--overwrite`
+remains an alias for `--force`; destructive targets such as the workspace, home
+directory, filesystem root, symlinks, or a directory containing the source story
+are refused.
 
 `doctor` checks conventional Resolve locations on macOS, Windows, and Linux.
 Use `RESOLVE_APP_PATH` and `RESOLVE_SCRIPT_API` for custom installs.

@@ -30,6 +30,10 @@ video-only.
 with two V1 clips, one A4 production-audio item, exact matching placement, and a
 persisted V1/A4 link.
 
+The canonical full-story interview and all five baby-shower interview shots also
+opt in, so longer generated edits expose matching A4 production audio instead
+of demonstrating the feature only in the short cafe story.
+
 ```bash
 RESOLVE_ROUNDTRIP=1 .venv/bin/python -m pytest \
   tests/resolve_roundtrip/test_linked_audio.py

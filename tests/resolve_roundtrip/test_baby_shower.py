@@ -20,6 +20,7 @@ def test_baby_shower_builds_without_resolve(
     assert result["status"] == "GENERATOR_EXISTS"
     assert result["summary"]["timeline_name"] == "BABY_SHOWER_PRE_EDIT"
     assert result["summary"]["video_clips"] == 28
+    assert result["summary"]["linked_video_clips"] == 5
     assert result["summary"]["audio_clips"] == 15
     assert result["summary"]["audio_by_track"] == {"A1": 5, "A2": 2, "A3": 8}
     assert result["summary"]["title_cards"] == 3
@@ -44,11 +45,21 @@ def test_baby_shower_roundtrip_in_resolve() -> None:
     assert validation["audio_items_a1"] == 5
     assert validation["audio_items_a2"] == 2
     assert validation["audio_items_a3"] == 8
+    assert validation["audio_items_a4"] == 5
+    assert validation["production_audio_names"] == [
+        "Interview Mom Answer 1 (cam)",
+        "Interview Dad Answer 1 (cam)",
+        "Interview Friend 1 (cam)",
+        "Interview Mom Answer 2 (cam)",
+        "Interview Friend 2 (cam)",
+    ]
+    assert validation["linked_production_audio"] == [True] * 5
     assert validation["title_count"] == 3
     assert validation["timeline_folder"] == "Master"
     assert validation["track_names"]["A1"] == "VO"
     assert validation["track_names"]["A2"] == "Music"
     assert validation["track_names"]["A3"] == "SFX"
+    assert validation["track_names"]["A4"] == "Production"
     assert validation["picture_duration_frames"] == 3750
     assert validation["timeline_duration_frames"] == 3780
     assert validation["shot_labels"][0] == "Venue Establishing"

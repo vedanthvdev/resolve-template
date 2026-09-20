@@ -13,6 +13,7 @@ from resolve_template.story import (
     bin_for_video,
     bins,
     markers,
+    source_duration_frames,
     source_handles,
     titles,
     transitions,
@@ -58,9 +59,7 @@ def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
                 "track": clip["track"],
                 "start_frame": int(clip["start_frame"]),
                 "duration_frames": duration,
-                "source_duration_frames": (
-                    duration + clip_handles["head"] + clip_handles["tail"]
-                ),
+                "source_duration_frames": source_duration_frames(clip, clip_handles),
                 "head_handle_frames": clip_handles["head"],
                 "tail_handle_frames": clip_handles["tail"],
                 "linked_audio": bool(clip["linked_audio"]),
@@ -114,6 +113,8 @@ def write_shot_tracker(path: Path, story: dict[str, Any]) -> None:
 
 def write_timeline_map(path: Path, story: dict[str, Any]) -> None:
     timeline = story["timeline"]
+    fps = int(story["fps"])
+    handles = source_handles(story)
     lines = [
         f"# Timeline map — {timeline['name']}",
         "",
@@ -125,9 +126,15 @@ def write_timeline_map(path: Path, story: dict[str, Any]) -> None:
         "",
     ]
     for clip in video_clips(story):
+        duration = int(clip["duration_frames"])
+        clip_handles = handles[int(clip["shot"])]
+        source_duration = source_duration_frames(clip, clip_handles)
         end = int(clip["start_frame"]) + int(clip["duration_frames"])
         lines.append(
-            f"- shot {clip['shot']}: {clip['start_frame']}–{end} `{clip['filename']}`"
+            f"- shot {clip['shot']}: {clip['start_frame']}–{end} "
+            f"(timeline {duration / fps:g}s / source {source_duration / fps:g}s; "
+            f"handles {clip_handles['head']}f head + {clip_handles['tail']}f tail) "
+            f"`{clip['filename']}`"
         )
     lines.extend(["", "## Audio", ""])
     audio = audio_clips(story)

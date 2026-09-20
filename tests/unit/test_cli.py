@@ -33,7 +33,7 @@ def test_new_creates_the_full_story_template(
     output = capsys.readouterr().out
     assert "Created full_story template:" in output
     assert f"resolve-template resolve-build {target / 'story.yaml'}" in output
-    assert f"--output output/{target.name} --force" in output
+    assert f"--output output/packages/{target.name} --force" in output
 
 
 def test_new_can_write_the_baby_shower_template(tmp_path: Path) -> None:
@@ -73,6 +73,17 @@ def test_new_refuses_to_overwrite(tmp_path: Path) -> None:
     story_path.write_text("keep me", encoding="utf-8")
     assert cmd_new(target) == 1
     assert story_path.read_text(encoding="utf-8") == "keep me"
+
+
+def test_new_defaults_story_under_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    assert cmd_new(template="cafe") == 0
+    assert (tmp_path / "output" / "stories" / "cafe" / "story.yaml").is_file()
+    assert "--output output/packages/cafe --force" in capsys.readouterr().out
 
 
 def test_human_build_summary_omits_internal_relink_path(
@@ -123,6 +134,37 @@ def test_build_force_alias_sets_overwrite() -> None:
     assert args.overwrite is True
 
 
+def test_new_has_independent_story_and_output_force_flags() -> None:
+    args = build_parser().parse_args(
+        ["new", "story", "--build", "--force-story", "--force-output"]
+    )
+    assert args.force_story is True
+    assert args.force_output is True
+
+
+def test_new_force_alias_keeps_legacy_replace_everything() -> None:
+    args = build_parser().parse_args(["new", "story", "--build", "--force"])
+    assert args.force_story is True
+    assert args.force_output is True
+
+
+def test_new_package_path_survives_a_dot_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "my_story"
+    target.mkdir()
+    monkeypatch.chdir(target)
+    called: list[Path] = []
+
+    def fake_build(_story: Path, build_output: Path, _overwrite: bool) -> int:
+        called.append(build_output)
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_resolve_build", fake_build)
+    assert cmd_new(Path("."), build=True) == 0
+    assert called == [Path("output") / "packages" / "my_story"]
+
+
 def test_cli_reports_unsafe_force_target_without_traceback(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -168,3 +210,42 @@ def test_new_can_build_immediately(
     monkeypatch.setattr(cli, "cmd_resolve_build", fake_build)
     assert cmd_new(target, build=True, output=output) == 0
     assert called == [(target / "story.yaml", output, False)]
+
+
+def test_new_reuses_existing_story_and_only_forces_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "cafe"
+    target.mkdir()
+    story = target / "story.yaml"
+    story.write_text("keep me", encoding="utf-8")
+    output = tmp_path / "package"
+    called: list[tuple[Path, Path, bool]] = []
+
+    def fake_build(story_path: Path, build_output: Path, overwrite: bool) -> int:
+        called.append((story_path, build_output, overwrite))
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_resolve_build", fake_build)
+    assert cmd_new(target, build=True, output=output, force_output=True) == 0
+    assert story.read_text(encoding="utf-8") == "keep me"
+    assert called == [(story, output, True)]
+
+
+def test_new_build_reports_force_output_for_existing_package(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    target = tmp_path / "cafe"
+    target.mkdir()
+    (target / "story.yaml").write_text("keep me", encoding="utf-8")
+
+    def fake_build(_story: Path, output: Path, _overwrite: bool) -> int:
+        raise FileExistsError(f"Output already exists: {output}.")
+
+    monkeypatch.setattr(cli, "cmd_resolve_build", fake_build)
+    assert cmd_new(target, build=True) == 2
+    error = capsys.readouterr().err
+    assert "Rerun with --force-output." in error
+    assert "Rerun with --force." not in error
