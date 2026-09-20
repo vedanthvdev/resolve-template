@@ -43,7 +43,7 @@ def test_audio_tracks_roundtrip_in_resolve() -> None:
     assert validation["audio_items_a2"] == 1
     assert validation["audio_items_a3"] == 2
     assert validation["audio_names_by_track"] == {
-        "A1": ["VO_01_BED_PLACEHOLDER.wav"],
-        "A2": ["MUSIC_01_BED_PLACEHOLDER.wav"],
-        "A3": ["SFX_01_HIT_PLACEHOLDER.wav", "SFX_02_HIT_PLACEHOLDER.wav"],
+        "A1": ["VO"],
+        "A2": ["MUSIC"],
+        "A3": ["SFX", "SFX"],
     }

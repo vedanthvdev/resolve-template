@@ -116,6 +116,22 @@ def _filename_part(value: str, *, fallback: str) -> str:
     return (normalized or fallback)[:48]
 
 
+def video_display_name(clip: dict[str, Any]) -> str:
+    return str(clip["label"])
+
+
+def audio_display_name(clip: dict[str, Any]) -> str:
+    role = str(clip["role"]).upper()
+    label = str(clip["label"])
+    if label.upper() == role:
+        return role
+    return f"{role} — {label}"
+
+
+def title_display_name(title: dict[str, Any]) -> str:
+    return str(title.get("text") or title["filename"])
+
+
 def normalize_story_times(story: dict[str, Any]) -> None:
     """Convert seconds authoring fields to the canonical integer frame fields."""
     fps = int(story["fps"])

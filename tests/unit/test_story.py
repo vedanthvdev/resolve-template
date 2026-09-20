@@ -8,14 +8,17 @@ import pytest
 from resolve_template.story import (
     STANDARD_BINS,
     StoryValidationError,
+    audio_display_name,
     bin_mapping,
     bins,
     load_story,
+    title_display_name,
     validate_audio_tracks,
     validate_bins_and_markers,
     validate_contiguous_v1,
     validate_transitions_and_titles,
     validate_unique_media_filenames,
+    video_display_name,
 )
 
 
@@ -358,3 +361,6 @@ titles:
     assert story["audio"][0]["filename"] == "VO_01_WELCOME_PLACEHOLDER.wav"
     assert story["titles"][0]["filename"] == "TITLE_01_THE_CAFE.mp4"
     assert story["markers"][0]["duration_frames"] == 10
+    assert video_display_name(story["video"][0]) == "Cafe exterior"
+    assert audio_display_name(story["audio"][0]) == "VO — Welcome"
+    assert title_display_name(story["titles"][0]) == "The Cafe"

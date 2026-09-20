@@ -46,6 +46,6 @@ def test_cross_dissolve_roundtrip_in_resolve() -> None:
     )
     assert validation["fade_from_black"] is True
     assert validation["fade_to_black"] is True
-    assert validation["title_names"] == ["TITLE_01_OPENING.mp4"]
+    assert validation["title_names"] == ["OPENING"]
     assert validation["gaps"] == []
     assert validation["relinked_clip_count"] == 3

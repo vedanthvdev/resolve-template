@@ -51,7 +51,7 @@ def test_full_story_roundtrip_in_resolve() -> None:
     assert validation["audio_items_a1"] == 1
     assert validation["audio_items_a2"] == 1
     assert validation["audio_items_a3"] == 2
-    assert validation["title_names"] == ["TITLE_01_OPENING.mp4"]
+    assert validation["title_names"] == ["OPENING"]
     assert validation["timeline_folder"] == "Master"
     assert validation["track_names"] == {
         "V1": "Picture",
@@ -63,6 +63,7 @@ def test_full_story_roundtrip_in_resolve() -> None:
     assert validation["picture_duration_frames"] == 250
     assert validation["timeline_duration_frames"] == 256
     assert validation["shot_labels"][:3] == ["Establishing", "Approach", "Entrance"]
+    assert validation["video_names"][:3] == ["Establishing", "Approach", "Entrance"]
     assert len(set(validation["clip_colors"])) == 5
     assert validation["transition_count"] == 3
     assert validation["marker_count"] == 4

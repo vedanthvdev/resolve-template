@@ -38,7 +38,7 @@ def test_ten_clip_roundtrip_in_resolve() -> None:
     assert validation["fps"] == 25.0
     assert validation["video_items_v1"] == 10
     assert validation["audio_items_a1"] == 0
-    assert validation["video_names"] == EXPECTED_NAMES
+    assert validation["video_names"] == [f"Shot {index:03d}" for index in range(1, 11)]
     assert validation["video_starts"] == EXPECTED_STARTS
     assert validation["video_durations"] == EXPECTED_DURATIONS
     assert validation["timeline_duration_frames"] == 250

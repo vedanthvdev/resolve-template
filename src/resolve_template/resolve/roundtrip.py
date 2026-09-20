@@ -20,15 +20,18 @@ from resolve_template.placeholders import (
 from resolve_template.resolve.api import get_resolve
 from resolve_template.story import (
     audio_clips,
+    audio_display_name,
     bin_mapping,
     bins,
     load_story,
     markers,
     source_handles,
+    title_display_name,
     titles,
     track_index,
     transitions,
     video_clips,
+    video_display_name,
 )
 
 DISPOSABLE_PROJECT_PREFIX = "_rt_resolve_template_"
@@ -336,6 +339,11 @@ def _resolve_roundtrip(
             for video_index, audio_item in zip(
                 linked_video_indexes, appended_production, strict=True
             ):
+                _set_timeline_item_name(
+                    audio_item,
+                    f"{video_display_name(videos[video_index])} (cam)",
+                    videos[video_index]["filename"],
+                )
                 if not timeline.SetClipsLinked(
                     [appended_video[video_index], audio_item], True
                 ):
@@ -359,6 +367,10 @@ def _resolve_roundtrip(
             appended_audio = media_pool.AppendToTimeline(audio_infos)
             if appended_audio is None or len(appended_audio) != len(audios):
                 raise RuntimeError("Resolve did not append the expected audio clips")
+            for item, clip in zip(appended_audio, audios, strict=True):
+                _set_timeline_item_name(
+                    item, audio_display_name(clip), clip["filename"]
+                )
 
         if titles:
             title_infos = [
@@ -375,6 +387,10 @@ def _resolve_roundtrip(
             appended_titles = media_pool.AppendToTimeline(title_infos)
             if appended_titles is None or len(appended_titles) != len(titles):
                 raise RuntimeError("Resolve did not append the expected title stills")
+            for item, title in zip(appended_titles, titles, strict=True):
+                _set_timeline_item_name(
+                    item, title_display_name(title), title["filename"]
+                )
 
         _apply_transitions(timeline, videos, transitions)
 
@@ -510,11 +526,24 @@ def _apply_clip_metadata(
 def _apply_timeline_labels(items: list[Any], videos: list[dict[str, Any]]) -> None:
     for item, clip in zip(items, videos, strict=True):
         color = str(clip["color"])
-        label = str(clip["label"])
+        label = video_display_name(clip)
+        _set_timeline_item_name(item, label, clip["filename"])
         if not item.SetClipColor(color):
             raise RuntimeError(f"Resolve could not color timeline clip {clip['filename']}")
         if not item.AddMarker(0, color, label, f"Shot {clip['shot']}", 1):
             raise RuntimeError(f"Resolve could not label timeline clip {clip['filename']}")
+
+
+def _set_timeline_item_name(item: Any, name: str, context: str) -> None:
+    setter = getattr(item, "SetName", None)
+    if setter is None:
+        raise RuntimeError(f"Resolve TimelineItem.SetName is unavailable for {context}")
+    setter(name)
+    actual = str(item.GetName())
+    if actual != name:
+        raise RuntimeError(
+            f"Resolve could not name timeline clip {context} {name!r}, got {actual!r}"
+        )
 
 
 def _ensure_video_tracks(timeline: Any, titles: list[dict[str, Any]]) -> None:
@@ -672,7 +701,7 @@ def _validate_roundtrip(
     video_names = [item.GetName() for item in video_items]
     video_starts = [int(item.GetStart()) for item in video_items]
     video_durations = [int(item.GetDuration()) for item in video_items]
-    expected_names = [str(clip["filename"]) for clip in videos]
+    expected_names = [video_display_name(clip) for clip in videos]
     expected_starts = [int(clip["start_frame"]) for clip in videos]
     expected_durations = [int(clip["duration_frames"]) for clip in videos]
     if video_names != expected_names:
@@ -805,7 +834,7 @@ def _audio_items_by_track(timeline: Any, audios: list[dict[str, Any]]) -> dict[s
             items = timeline.GetItemListInTrack("audio", index) or []
         expected = [clip for clip in audios if clip["track"] == label]
         names = [item.GetName() for item in items]
-        expected_names = [str(clip["filename"]) for clip in expected]
+        expected_names = [audio_display_name(clip) for clip in expected]
         if names != expected_names:
             raise RuntimeError(f"{label} names {names} do not match {expected_names}")
         starts = [int(item.GetStart()) for item in items]
@@ -827,7 +856,9 @@ def _validate_production_audio(
     if timeline.GetTrackCount("audio") >= 4:
         items = timeline.GetItemListInTrack("audio", 4) or []
     names = [item.GetName() for item in items]
-    expected_names = [str(clip["filename"]) for clip in expected]
+    expected_names = [
+        f"{video_display_name(clip)} (cam)" for clip in expected
+    ]
     if names != expected_names:
         raise RuntimeError(f"A4 names {names} do not match {expected_names}")
     starts = [int(item.GetStart()) for item in items]
@@ -843,7 +874,7 @@ def _validate_production_audio(
         if getter is None:
             raise RuntimeError("Resolve TimelineItem.GetLinkedItems is unavailable")
         linked_names = [linked_item.GetName() for linked_item in (getter() or [])]
-        is_linked = str(clip["filename"]) in linked_names
+        is_linked = video_display_name(clip) in linked_names
         if not is_linked:
             raise RuntimeError(f"Production audio for {clip['filename']} is not linked")
         linked.append(is_linked)
@@ -964,7 +995,7 @@ def _validate_titles(timeline: Any, title_specs: list[dict[str, Any]]) -> dict[s
         raise RuntimeError("Re-imported project is missing the title video track")
     items = timeline.GetItemListInTrack("video", needed) or []
     names = [item.GetName() for item in items]
-    expected_names = [str(title["filename"]) for title in title_specs]
+    expected_names = [title_display_name(title) for title in title_specs]
     if names != expected_names:
         raise RuntimeError(f"title names {names} do not match {expected_names}")
     starts = [int(item.GetStart()) for item in items]
