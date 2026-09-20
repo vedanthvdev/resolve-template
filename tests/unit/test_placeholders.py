@@ -8,6 +8,7 @@ from pathlib import Path
 from resolve_template.placeholders import (
     generate_placeholder_media,
     generate_placeholder_title_still,
+    generate_placeholder_video,
 )
 
 
@@ -70,3 +71,32 @@ def test_title_text_changes_rendered_pixels(tmp_path: Path) -> None:
         text="THANK YOU",
     )
     assert opening.read_bytes() != closing.read_bytes()
+
+
+def test_video_placeholder_can_include_silent_production_audio(tmp_path: Path) -> None:
+    video = generate_placeholder_video(
+        tmp_path,
+        filename="camera.mp4",
+        fps=25,
+        duration_frames=50,
+        linked_audio=True,
+    )
+    probe = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "stream=codec_type",
+            "-of",
+            "json",
+            str(video),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert [stream["codec_type"] for stream in json.loads(probe.stdout)["streams"]] == [
+        "video",
+        "audio",
+    ]

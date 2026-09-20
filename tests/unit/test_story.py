@@ -321,6 +321,7 @@ video:
     label: Cafe exterior
     track: V1
     duration: 2s
+    linked_audio: true
 audio:
   - role: vo
     label: Welcome
@@ -343,6 +344,7 @@ titles:
     story = load_story(path)
     assert story["video"][0]["filename"] == "001_CAFE_EXTERIOR_PLACEHOLDER.mp4"
     assert story["video"][0]["color"] == "Blue"
+    assert story["video"][0]["linked_audio"] is True
     assert story["audio"][0]["filename"] == "VO_01_WELCOME_PLACEHOLDER.wav"
     assert story["titles"][0]["filename"] == "TITLE_01_THE_CAFE.mp4"
     assert story["markers"][0]["duration_frames"] == 10

@@ -111,6 +111,11 @@ def _print_build_summary(result: dict[str, Any]) -> None:
         f"(A1 {audio['A1']}, A2 {audio['A2']}, A3 {audio['A3']}), "
         f"{summary['title_cards']} generated {title_label}"
     )
+    if summary["linked_video_clips"]:
+        print(
+            f"Production audio: {summary['linked_video_clips']} linked camera "
+            f"{'clip' if summary['linked_video_clips'] == 1 else 'clips'} on A4"
+        )
     transition_names = ", ".join(name.replace("_", " ") for name in summary["transitions"])
     print(f"Transitions: {transition_names or 'cuts only'}")
     if drp:

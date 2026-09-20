@@ -29,6 +29,7 @@ TRACKER_FIELDS = (
     "source_duration_frames",
     "head_handle_frames",
     "tail_handle_frames",
+    "linked_audio",
     "bin",
     "role",
 )
@@ -62,6 +63,7 @@ def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
                 ),
                 "head_handle_frames": clip_handles["head"],
                 "tail_handle_frames": clip_handles["tail"],
+                "linked_audio": bool(clip["linked_audio"]),
                 "bin": bin_for_video(clip, story) if has_bins else "",
                 "role": "",
             }
@@ -78,6 +80,7 @@ def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
                 "source_duration_frames": int(clip["duration_frames"]),
                 "head_handle_frames": 0,
                 "tail_handle_frames": 0,
+                "linked_audio": False,
                 "bin": bin_for_audio(clip, story) if has_bins else "",
                 "role": clip.get("role") or "",
             }
@@ -94,6 +97,7 @@ def tracker_rows(story: dict[str, Any]) -> list[dict[str, Any]]:
                 "source_duration_frames": int(title["duration_frames"]),
                 "head_handle_frames": 0,
                 "tail_handle_frames": 0,
+                "linked_audio": False,
                 "bin": bin_for_title(title, story) if has_bins else "",
                 "role": "still",
             }
@@ -127,13 +131,20 @@ def write_timeline_map(path: Path, story: dict[str, Any]) -> None:
         )
     lines.extend(["", "## Audio", ""])
     audio = audio_clips(story)
-    if not audio:
+    linked_video = [clip for clip in video_clips(story) if clip["linked_audio"]]
+    if not audio and not linked_video:
         lines.append("- none")
     for clip in audio:
         end = int(clip["start_frame"]) + int(clip["duration_frames"])
         role = clip.get("role") or "audio"
         lines.append(
             f"- {clip['track']} {role}: {clip['start_frame']}–{end} `{clip['filename']}`"
+        )
+    for clip in linked_video:
+        end = int(clip["start_frame"]) + int(clip["duration_frames"])
+        lines.append(
+            f"- A4 production (linked to V1): {clip['start_frame']}–{end} "
+            f"`{clip['filename']}`"
         )
     lines.extend(["", "## Markers", ""])
     marker_specs = markers(story)

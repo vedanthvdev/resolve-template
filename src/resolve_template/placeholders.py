@@ -19,8 +19,9 @@ def generate_placeholder_video(
     fps: int,
     duration_frames: int,
     color: str = "black",
+    linked_audio: bool = False,
 ) -> Path:
-    """Create a solid-color MP4 with an exact frame count."""
+    """Create a solid-color MP4, optionally with a silent production-audio stream."""
     _require_positive(fps, duration_frames)
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
@@ -29,17 +30,32 @@ def generate_placeholder_video(
     media_dir = Path(media_dir)
     media_dir.mkdir(parents=True, exist_ok=True)
     video_path = media_dir / filename
-    subprocess.run(
+    command = [
+        ffmpeg,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        f"color=c={color}:s=1280x720:r={fps}",
+    ]
+    if linked_audio:
+        command.extend(
+            [
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=r=48000:cl=stereo",
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+            ]
+        )
+    command.extend(
         [
-            ffmpeg,
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-f",
-            "lavfi",
-            "-i",
-            f"color=c={color}:s=1280x720:r={fps}",
             "-frames:v",
             str(duration_frames),
             "-c:v",
@@ -48,10 +64,12 @@ def generate_placeholder_video(
             "yuv420p",
             "-movflags",
             "+faststart",
-            str(video_path),
-        ],
-        check=True,
+        ]
     )
+    if linked_audio:
+        command.extend(["-c:a", "aac", "-b:a", "128k", "-shortest"])
+    command.append(str(video_path))
+    subprocess.run(command, check=True)
     return video_path
 
 

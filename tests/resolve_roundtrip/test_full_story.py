@@ -27,6 +27,7 @@ def test_full_story_builds_without_resolve(
         "picture_duration_seconds": 10.0,
         "fade_tail_frames": 6,
         "video_clips": 10,
+        "linked_video_clips": 0,
         "audio_clips": 4,
         "audio_by_track": {"A1": 1, "A2": 1, "A3": 2},
         "title_cards": 1,

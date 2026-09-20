@@ -60,6 +60,7 @@ def test_human_build_summary_omits_internal_relink_path(
             "fade_tail_frames": 6,
             "fps": 25.0,
             "video_clips": 10,
+            "linked_video_clips": 0,
             "audio_clips": 4,
             "audio_by_track": {"A1": 1, "A2": 1, "A3": 2},
             "title_cards": 1,
