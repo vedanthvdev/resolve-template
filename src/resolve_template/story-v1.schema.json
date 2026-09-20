@@ -16,6 +16,8 @@
     "version": { "const": "1" },
     "title": { "type": "string" },
     "fps": { "type": "integer", "minimum": 1 },
+    "width": { "type": "integer", "minimum": 16, "multipleOf": 2 },
+    "height": { "type": "integer", "minimum": 16, "multipleOf": 2 },
     "timeline": {
       "type": "object",
       "required": ["name"],

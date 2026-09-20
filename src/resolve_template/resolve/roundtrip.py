@@ -84,6 +84,8 @@ def resolve_build(
 
     timeline_spec = story["timeline"]
     fps = int(story["fps"])
+    width = int(story["width"])
+    height = int(story["height"])
     videos = video_clips(story)
     audios = audio_clips(story)
     title_specs = titles(story)
@@ -100,13 +102,18 @@ def resolve_build(
             media_dir,
             filename=clip["filename"],
             fps=fps,
-            duration_frames=(
-                int(clip["duration_frames"])
-                + video_handles[int(clip["shot"])]["head"]
-                + video_handles[int(clip["shot"])]["tail"]
+            duration_frames=max(
+                2,
+                (
+                    int(clip["duration_frames"])
+                    + video_handles[int(clip["shot"])]["head"]
+                    + video_handles[int(clip["shot"])]["tail"]
+                ),
             ),
             color=PLACEHOLDER_VIDEO_COLORS[str(clip["color"])],
             linked_audio=bool(clip["linked_audio"]),
+            width=width,
+            height=height,
         )
         for clip in videos
     ]
@@ -126,6 +133,8 @@ def resolve_build(
             text=str(title.get("text") or "TITLE"),
             fps=fps,
             duration_frames=int(title["duration_frames"]),
+            width=width,
+            height=height,
         )
         for title in title_specs
     ]
@@ -157,6 +166,8 @@ def resolve_build(
             imported_name=f"{DISPOSABLE_PROJECT_PREFIX}import_{uuid4().hex[:10]}",
             timeline_name=timeline_spec["name"],
             fps=fps,
+            width=width,
+            height=height,
             videos=videos,
             audios=audios,
             titles=title_specs,
@@ -211,6 +222,8 @@ def _story_summary(story: dict[str, Any]) -> dict[str, Any]:
     return {
         "timeline_name": story["timeline"]["name"],
         "fps": fps,
+        "width": int(story["width"]),
+        "height": int(story["height"]),
         "duration_frames": duration_frames,
         "duration_seconds": duration_frames / fps,
         "picture_duration_frames": picture_frames,
@@ -237,6 +250,8 @@ def _resolve_roundtrip(
     imported_name: str,
     timeline_name: str,
     fps: int,
+    width: int,
+    height: int,
     videos: list[dict[str, Any]],
     audios: list[dict[str, Any]],
     titles: list[dict[str, Any]],
@@ -262,6 +277,7 @@ def _resolve_roundtrip(
             raise RuntimeError(f"Resolve could not create disposable project {project_name}")
         if not project.SetSettings({"timelineFrameRate": float(fps)}):
             raise RuntimeError(f"Resolve rejected timelineFrameRate={fps}")
+        _apply_timeline_resolution(project, width, height)
 
         media_pool = project.GetMediaPool()
         imported = _import_media(media_pool, media_paths)
@@ -287,6 +303,7 @@ def _resolve_roundtrip(
         timeline = media_pool.CreateEmptyTimeline(timeline_name)
         if timeline is None or not project.SetCurrentTimeline(timeline):
             raise RuntimeError(f"Resolve could not create timeline {timeline_name}")
+        _apply_timeline_format(timeline, width=width, height=height)
         _ensure_audio_tracks(timeline, audios, videos)
         _ensure_video_tracks(timeline, titles)
         _name_tracks(timeline)
@@ -422,6 +439,8 @@ def _resolve_roundtrip(
             roundtrip_project,
             timeline_name=timeline_name,
             fps=fps,
+            width=width,
+            height=height,
             videos=videos,
             audios=audios,
             titles=titles,
@@ -467,6 +486,37 @@ def _prepare_project_manager(project_manager: Any) -> tuple[str | None, list[str
     ]
     _delete_projects(project_manager, stale)
     return original_name, stale
+
+
+def _apply_timeline_resolution(project: Any, width: int, height: int) -> None:
+    for key, value in (
+        ("timelineResolutionWidth", width),
+        ("timelineResolutionHeight", height),
+    ):
+        if project.SetSettings({key: float(value)}):
+            continue
+        if project.SetSettings({key: str(value)}):
+            continue
+        raise RuntimeError(f"Resolve rejected {key}={value}")
+
+
+def _apply_timeline_format(timeline: Any, *, width: int, height: int) -> None:
+    if not hasattr(timeline, "SetSetting"):
+        raise RuntimeError("Resolve timeline does not expose SetSetting")
+    for key, value in (
+        ("useCustomSettings", "1"),
+        ("timelineResolutionWidth", str(width)),
+        ("timelineResolutionHeight", str(height)),
+    ):
+        if not timeline.SetSetting(key, value):
+            raise RuntimeError(f"Resolve rejected timeline {key}={value}")
+
+
+def _setting_int(settings: dict[str, Any], key: str) -> int:
+    value = settings.get(key)
+    if value in (None, ""):
+        raise RuntimeError(f"Re-imported timeline is missing {key}")
+    return int(float(value))
 
 
 def _delete_projects(project_manager: Any, names: Iterable[str]) -> None:
@@ -666,6 +716,8 @@ def _validate_roundtrip(
     *,
     timeline_name: str,
     fps: int,
+    width: int,
+    height: int,
     videos: list[dict[str, Any]],
     audios: list[dict[str, Any]],
     titles: list[dict[str, Any]],
@@ -695,6 +747,12 @@ def _validate_roundtrip(
     transition_items = _transition_items(raw_video_items)
     if actual_fps != float(fps):
         raise RuntimeError(f"Expected {fps} fps after re-import, got {actual_fps}")
+    actual_width = _setting_int(settings, "timelineResolutionWidth")
+    actual_height = _setting_int(settings, "timelineResolutionHeight")
+    if actual_width != width or actual_height != height:
+        raise RuntimeError(
+            f"Expected {width}x{height} after re-import, got {actual_width}x{actual_height}"
+        )
     if len(video_items) != len(videos):
         raise RuntimeError(f"Expected {len(videos)} V1 clips, got {len(video_items)}")
 
@@ -769,6 +827,8 @@ def _validate_roundtrip(
 
     result: dict[str, Any] = {
         "fps": actual_fps,
+        "width": actual_width,
+        "height": actual_height,
         "video_items_v1": len(video_items),
         "audio_items_a1": len(audio_by_track["A1"]["items"]),
         "audio_items_a2": len(audio_by_track["A2"]["items"]),

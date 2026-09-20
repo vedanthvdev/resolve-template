@@ -19,6 +19,8 @@ def test_cafe_builds_without_resolve(
 
     assert result["status"] == "GENERATOR_EXISTS"
     assert result["summary"]["timeline_name"] == "PRE_EDIT_MAIN"
+    assert result["summary"]["width"] == 1920
+    assert result["summary"]["height"] == 1080
     assert result["summary"]["video_clips"] == 3
     assert result["summary"]["linked_video_clips"] == 1
     assert result["summary"]["audio_clips"] == 3
@@ -41,6 +43,8 @@ def test_cafe_roundtrip_in_resolve() -> None:
     validation = result["validation"]
 
     assert result["status"] == "VALIDATED_IN_RESOLVE"
+    assert validation["width"] == 1920
+    assert validation["height"] == 1080
     assert validation["video_items_v1"] == 3
     assert validation["video_names"] == ["Exterior", "Interview", "Closing"]
     assert validation["video_durations"] == [50, 100, 50]

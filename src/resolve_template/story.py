@@ -64,10 +64,14 @@ def load_story(path: Path) -> dict[str, Any]:
 
 
 VIDEO_COLORS = ("Blue", "Green", "Yellow", "Pink", "Purple")
+DEFAULT_WIDTH = 1920
+DEFAULT_HEIGHT = 1080
 
 
 def normalize_story_authoring(story: dict[str, Any]) -> None:
-    """Fill deterministic filenames, labels, and clip colors when omitted."""
+    """Fill deterministic filenames, labels, clip colors, and HD size when omitted."""
+    story["width"] = int(story.get("width") or DEFAULT_WIDTH)
+    story["height"] = int(story.get("height") or DEFAULT_HEIGHT)
     for clip in story["video"]:
         shot = int(clip["shot"])
         supplied_label = clip.get("label")

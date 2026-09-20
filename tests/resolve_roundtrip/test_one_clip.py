@@ -43,3 +43,33 @@ def test_one_clip_roundtrip_in_resolve() -> None:
     assert validation["video_duration_frames"] == 75
     assert validation["audio_duration_frames"] == 75
     assert validation["gaps"] == []
+
+
+@pytest.mark.resolve
+def test_4k_story_roundtrip_in_resolve(tmp_path: Path) -> None:
+    if os.environ.get("RESOLVE_ROUNDTRIP") != "1":
+        pytest.skip("Set RESOLVE_ROUNDTRIP=1 to mutate disposable Resolve projects")
+
+    story = tmp_path / "story.yaml"
+    story.write_text(
+        """
+version: "1"
+fps: 25
+width: 3840
+height: 2160
+timeline:
+  name: UHD
+  duration_frames: 1
+video:
+  - shot: 1
+    track: V1
+    start_frame: 0
+    duration_frames: 1
+""",
+        encoding="utf-8",
+    )
+    result = roundtrip.resolve_build(story, output=tmp_path / "out", overwrite=True)
+    assert result["status"] == "VALIDATED_IN_RESOLVE"
+    assert result["validation"]["width"] == 3840
+    assert result["validation"]["height"] == 2160
+    assert result["validation"]["video_duration_frames"] == 1

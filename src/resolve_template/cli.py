@@ -105,7 +105,8 @@ def _print_build_summary(result: dict[str, Any]) -> None:
     print(f"ZIP: {result['package_zip']}")
     print(
         f"Picture: {summary['picture_duration_seconds']:g} seconds "
-        f"({summary['picture_duration_frames']} frames at {summary['fps']:g} fps)"
+        f"({summary['picture_duration_frames']} frames at {summary['fps']:g} fps, "
+        f"{summary['width']}x{summary['height']})"
     )
     if summary["fade_tail_frames"]:
         print(

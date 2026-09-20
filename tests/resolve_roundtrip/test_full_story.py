@@ -21,6 +21,8 @@ def test_full_story_builds_without_resolve(
     assert result["summary"] == {
         "timeline_name": "PRE_EDIT_MAIN",
         "fps": 25.0,
+        "width": 1920,
+        "height": 1080,
         "duration_frames": 256,
         "duration_seconds": 10.24,
         "picture_duration_frames": 250,
@@ -47,6 +49,8 @@ def test_full_story_roundtrip_in_resolve() -> None:
     validation = result["validation"]
 
     assert result["status"] == "VALIDATED_IN_RESOLVE"
+    assert validation["width"] == 1920
+    assert validation["height"] == 1080
     assert validation["video_items_v1"] == 10
     assert validation["audio_items_a1"] == 1
     assert validation["audio_items_a2"] == 1

@@ -20,9 +20,12 @@ def generate_placeholder_video(
     duration_frames: int,
     color: str = "black",
     linked_audio: bool = False,
+    width: int = 1920,
+    height: int = 1080,
 ) -> Path:
     """Create a solid-color MP4, optionally with a silent production-audio stream."""
     _require_positive(fps, duration_frames)
+    _require_frame_size(width, height)
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
         raise RuntimeError("ffmpeg is required to generate the placeholder MP4")
@@ -39,7 +42,7 @@ def generate_placeholder_video(
         "-f",
         "lavfi",
         "-i",
-        f"color=c={color}:s=1280x720:r={fps}",
+        f"color=c={color}:s={width}x{height}:r={fps}",
     ]
     if linked_audio:
         command.extend(
@@ -111,6 +114,8 @@ def generate_placeholder_media(
     fps: int,
     duration_frames: int,
     sample_rate: int = 48_000,
+    width: int = 1920,
+    height: int = 1080,
 ) -> tuple[Path, Path]:
     """Create a black MP4 and silent WAV with an exact frame-based duration."""
     video_path = generate_placeholder_video(
@@ -118,6 +123,8 @@ def generate_placeholder_media(
         filename=video_filename,
         fps=fps,
         duration_frames=duration_frames,
+        width=width,
+        height=height,
     )
     audio_path = generate_placeholder_audio(
         media_dir,
@@ -136,24 +143,28 @@ def generate_placeholder_title_still(
     text: str = "TITLE",
     fps: int = 25,
     duration_frames: int = 1,
+    width: int = 1920,
+    height: int = 1080,
 ) -> Path:
     """Create a static title card with visible text."""
-    ffmpeg = shutil.which("ffmpeg")
-    if ffmpeg is None:
-        raise RuntimeError("ffmpeg is required to generate the placeholder title still")
     if duration_frames <= 0 or fps <= 0:
         raise ValueError("fps and duration_frames must be positive")
+    _require_frame_size(width, height)
 
     media_dir = Path(media_dir)
     media_dir.mkdir(parents=True, exist_ok=True)
     still_path = media_dir / filename
     if still_path.suffix.lower() == ".png":
-        _render_title_image(still_path, text)
+        _render_title_image(still_path, text, width=width, height=height)
         return still_path
+
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        raise RuntimeError("ffmpeg is required to generate the placeholder title video")
 
     with tempfile.TemporaryDirectory(prefix="resolve-template-title-") as temp_dir:
         source_image = Path(temp_dir) / "title.png"
-        _render_title_image(source_image, text)
+        _render_title_image(source_image, text, width=width, height=height)
         command = [
             ffmpeg,
             "-hide_banner",
@@ -180,23 +191,31 @@ def generate_placeholder_title_still(
     return still_path
 
 
-def _render_title_image(path: Path, text: str) -> None:
-    image = Image.new("RGB", (1280, 720), "#17191d")
+def _render_title_image(path: Path, text: str, *, width: int, height: int) -> None:
+    image = Image.new("RGB", (width, height), "#17191d")
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((80, 255, 1200, 465), radius=24, fill="#f4f4f2")
+    margin_x = int(width * 0.0625)
+    box_top = int(height * 0.35)
+    box_bottom = int(height * 0.65)
+    radius = max(8, int(height * 0.033))
+    draw.rounded_rectangle(
+        (margin_x, box_top, width - margin_x, box_bottom),
+        radius=radius,
+        fill="#f4f4f2",
+    )
     try:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 72)
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", max(24, int(height * 0.1)))
     except OSError:
         font = ImageFont.load_default()
     wrapped = "\n".join(textwrap.wrap(text.strip() or "TITLE", width=26))
     draw.multiline_text(
-        (640, 360),
+        (width // 2, height // 2),
         wrapped,
         font=font,
         fill="#17191d",
         anchor="mm",
         align="center",
-        spacing=10,
+        spacing=max(6, int(height * 0.014)),
     )
     image.save(path, format="PNG")
 
@@ -204,3 +223,8 @@ def _render_title_image(path: Path, text: str) -> None:
 def _require_positive(fps: int, duration_frames: int) -> None:
     if fps <= 0 or duration_frames <= 0:
         raise ValueError("fps and duration_frames must be positive")
+
+
+def _require_frame_size(width: int, height: int) -> None:
+    if width < 16 or height < 16 or width % 2 or height % 2:
+        raise ValueError("width and height must be even integers of at least 16")

@@ -90,6 +90,8 @@ def test_human_build_summary_omits_internal_relink_path(
             "picture_duration_frames": 250,
             "fade_tail_frames": 6,
             "fps": 25.0,
+            "width": 1920,
+            "height": 1080,
             "video_clips": 10,
             "linked_video_clips": 0,
             "audio_clips": 4,
@@ -104,6 +106,7 @@ def test_human_build_summary_omits_internal_relink_path(
     assert "DRP: /package/project.drp" in output
     assert "ZIP: /package/full_story.zip" in output
     assert "10 seconds" in output
+    assert "1920x1080" in output
     assert "10.24 seconds including 6 fade-tail frames" in output
     assert "10 video, 4 audio" in output
     assert "Open this in Resolve: /package/project.drp" in output
