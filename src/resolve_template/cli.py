@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 STORY_TEMPLATES = {
+    "cafe": "cafe.yaml",
     "full_story": "full_story.yaml",
     "baby_shower": "baby_shower.yaml",
 }
