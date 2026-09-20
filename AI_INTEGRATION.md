@@ -4,7 +4,8 @@ Creative planning stays in `story.yaml`. Models should not emit Resolve XML or f
 
 ## Flow
 
-1. Start from `examples/full_story/story.yaml` or run `resolve-template new`.
+1. Start from `examples/full_story/story.yaml`, `examples/baby_shower/story.yaml`,
+   or `resolve-template new --template baby_shower`.
 2. Model (or human) edits only `story.yaml`, conforming to
    `schemas/story-v1.schema.json`.
 3. CLI: `resolve-template resolve-build path/to/story.yaml --output out --force`

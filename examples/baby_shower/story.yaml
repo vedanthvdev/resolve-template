@@ -1,0 +1,310 @@
+version: "1"
+title: Baby shower pre-edit
+fps: 25
+timeline:
+  name: BABY_SHOWER_PRE_EDIT
+bins:
+  video: Shots
+  vo: Interviews
+  music: Songs
+  sfx: Sound Effects
+  graphics: Title Cards
+markers:
+  - at: 0s
+    name: COLD_OPEN
+    color: Blue
+    duration: 0.04s
+    note: Opening title over venue establishing shot
+  - at: 20s
+    name: MOM_ANSWER_1
+    color: Pink
+    duration: 10s
+    note: Mom on finding out she was pregnant
+  - at: 39s
+    name: DAD_ANSWER_1
+    color: Sky
+    duration: 10s
+    note: Dad on getting the news
+  - at: 59s
+    name: FRIEND_ANSWER_1
+    color: Lavender
+    duration: 9s
+    note: Best friend on watching them become parents
+  - at: 74s
+    name: CAKE_REVEAL
+    color: Cream
+    duration: 6s
+    note: Last slow beat before the song change
+  - at: 80s
+    name: SONG_2_DROP
+    color: Yellow
+    duration: 0.04s
+    note: Slow song ends, fast party song starts here
+  - at: 100s
+    name: MOM_ANSWER_2
+    color: Rose
+    duration: 8s
+    note: Mom on what she hopes for the baby
+  - at: 115s
+    name: FRIEND_ANSWER_2
+    color: Mint
+    duration: 8s
+    note: Friends roast the dad-to-be
+  - at: 137s
+    name: CAKE_CUTTING
+    color: Red
+    duration: 5s
+    note: Cake cutting into the toast
+  - at: 146s
+    name: CLOSING
+    color: Purple
+    duration: 0.04s
+    note: Final hands-on-belly shot and end card
+video:
+  # --- Act 1: slow motherly song ---
+  - shot: 1
+    label: Venue Establishing
+    color: Pink
+    track: V1
+    duration: 5s
+  - shot: 2
+    label: Pastel Decor Detail
+    color: Pink
+    track: V1
+    duration: 4s
+  - shot: 3
+    label: Mom Arrives
+    color: Pink
+    track: V1
+    duration: 5s
+  - shot: 4
+    label: Mom Belly Portrait
+    color: Pink
+    track: V1
+    duration: 6s
+  - shot: 5
+    label: Interview Mom Answer 1
+    color: Blue
+    track: V1
+    duration: 10s
+  - shot: 6
+    label: Guests Arriving
+    color: Pink
+    track: V1
+    duration: 5s
+  - shot: 7
+    label: Gift Table Detail
+    color: Pink
+    track: V1
+    duration: 4s
+  - shot: 8
+    label: Interview Dad Answer 1
+    color: Blue
+    track: V1
+    duration: 10s
+  - shot: 9
+    label: Parents Together Slow
+    color: Purple
+    track: V1
+    duration: 6s
+  - shot: 10
+    label: Baby Clothes Detail
+    color: Purple
+    track: V1
+    duration: 4s
+  - shot: 11
+    label: Interview Friend 1
+    color: Blue
+    track: V1
+    duration: 9s
+  - shot: 12
+    label: Hugs And Greetings
+    color: Purple
+    track: V1
+    duration: 6s
+  - shot: 13
+    label: Cake Reveal
+    color: Purple
+    track: V1
+    duration: 6s
+  # --- Act 2: fast party song ---
+  - shot: 14
+    label: Party Music Drop
+    color: Yellow
+    track: V1
+    duration: 4s
+  - shot: 15
+    label: Balloon Toss
+    color: Yellow
+    track: V1
+    duration: 3s
+  - shot: 16
+    label: Dance Floor Wide
+    color: Yellow
+    track: V1
+    duration: 5s
+  - shot: 17
+    label: Games Montage A
+    color: Green
+    track: V1
+    duration: 4s
+  - shot: 18
+    label: Games Montage B
+    color: Green
+    track: V1
+    duration: 4s
+  - shot: 19
+    label: Interview Mom Answer 2
+    color: Blue
+    track: V1
+    duration: 8s
+  - shot: 20
+    label: Confetti Pop
+    color: Yellow
+    track: V1
+    duration: 3s
+  - shot: 21
+    label: Friends Laughing
+    color: Green
+    track: V1
+    duration: 4s
+  - shot: 22
+    label: Interview Friend 2
+    color: Blue
+    track: V1
+    duration: 8s
+  - shot: 23
+    label: Gift Opening
+    color: Green
+    track: V1
+    duration: 5s
+  - shot: 24
+    label: Dad Reaction
+    color: Green
+    track: V1
+    duration: 4s
+  - shot: 25
+    label: Group Photo
+    color: Yellow
+    track: V1
+    duration: 5s
+  - shot: 26
+    label: Cake Cutting
+    color: Yellow
+    track: V1
+    duration: 5s
+  - shot: 27
+    label: Sparkler Toast
+    color: Purple
+    track: V1
+    duration: 4s
+  - shot: 28
+    label: Closing Hands On Belly
+    color: Pink
+    track: V1
+    duration: 4s
+audio:
+  # Interview answers cut between the songs
+  - role: vo
+    label: Mom Answer 1 Finding Out
+    track: A1
+    start: 20s
+    duration: 10s
+  - role: vo
+    label: Dad Answer 1 Getting The News
+    track: A1
+    start: 39s
+    duration: 10s
+  - role: vo
+    label: Friend 1 Watching Them Become Parents
+    track: A1
+    start: 59s
+    duration: 9s
+  - role: vo
+    label: Mom Answer 2 Hopes For Baby
+    track: A1
+    start: 100s
+    duration: 8s
+  - role: vo
+    label: Friend 2 Advice For Dad
+    track: A1
+    start: 115s
+    duration: 8s
+  # Song 1 slow and motherly, song 2 fast party beat
+  - role: music
+    label: Song 1 Slow Motherly
+    track: A2
+    start: 0s
+    duration: 80s
+  - role: music
+    label: Song 2 Fast Party Beat
+    track: A2
+    start: 80s
+    duration: 70s
+  # Sound effects
+  - role: sfx
+    label: Door Chime Arrival
+    track: A3
+    start: 9s
+    duration: 1s
+  - role: sfx
+    label: Gift Ribbon Rustle
+    track: A3
+    start: 35s
+    duration: 1s
+  - role: sfx
+    label: Cake Reveal Whoosh
+    track: A3
+    start: 74s
+    duration: 1s
+  - role: sfx
+    label: Party Drop Impact
+    track: A3
+    start: 80s
+    duration: 2s
+  - role: sfx
+    label: Balloon Pop
+    track: A3
+    start: 84s
+    duration: 1s
+  - role: sfx
+    label: Confetti Cannon
+    track: A3
+    start: 108s
+    duration: 2s
+  - role: sfx
+    label: Camera Shutter Group Photo
+    track: A3
+    start: 132s
+    duration: 1s
+  - role: sfx
+    label: Sparkler Fizz Toast
+    track: A3
+    start: 142s
+    duration: 4s
+transitions:
+  - kind: fade_from_black
+    shot: 1
+    duration: 1s
+  - kind: cross_dissolve
+    after_shot: 4
+    duration: 1s
+  - kind: cross_dissolve
+    after_shot: 13
+    duration: 1s
+  - kind: fade_to_black
+    shot: 28
+    duration: 1.2s
+titles:
+  - text: BABY SHOWER
+    track: V2
+    start: 0s
+    duration: 5s
+  - text: LET'S PARTY
+    track: V2
+    start: 80s
+    duration: 4s
+  - text: THANK YOU
+    track: V2
+    start: 146s
+    duration: 4s

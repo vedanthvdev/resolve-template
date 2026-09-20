@@ -194,6 +194,9 @@ Only `Project.SetSettings({"timelineFrameRate": 25.0})` was required. A combined
 - Timeline remained in Master; tracks remained named Picture, Titles, VO,
   Music, and SFX
 - All 15 media items relinked to the persistent package media folder
+- `examples/baby_shower/story.yaml` later proved a 28-shot event-film cut on the
+  same path: 150s picture, 1.2s fade tail, 15 A1–A3 beds, 3 titles, 10 markers,
+  and 46 relinked media items
 
 ## Phase 9 validated result
 
