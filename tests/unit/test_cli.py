@@ -123,6 +123,17 @@ def test_build_force_alias_sets_overwrite() -> None:
     assert args.overwrite is True
 
 
+def test_cli_reports_unsafe_force_target_without_traceback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    story = Path(__file__).resolve().parents[2] / "examples" / "cafe" / "story.yaml"
+    monkeypatch.chdir(tmp_path)
+    assert main(["resolve-build", str(story), "--output", ".", "--force"]) == 2
+    assert "Refusing to overwrite unsafe output directory" in capsys.readouterr().err
+
+
 def test_schema_error_prints_fields_without_traceback(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
