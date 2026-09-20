@@ -19,8 +19,9 @@ This project aims to produce a **genuine** `.drp` by driving Resolve’s officia
 | Canonical AI/human full-story workflow | **Validated** on Studio 21.1.0 |
 | Optional V1/A4 linked production audio | **Validated** on Studio 21.1.0 |
 
-See [docs/phases/README.md](docs/phases/README.md) for the build order. The canonical
-10-shot template is [`examples/full_story/story.yaml`](examples/full_story/story.yaml).
+See [docs/phases/README.md](docs/phases/README.md) for the build order. Start from the
+8-second [`examples/cafe/story.yaml`](examples/cafe/story.yaml). The 10-shot
+canonical template is [`examples/full_story/story.yaml`](examples/full_story/story.yaml).
 A longer event-film template is
 [`examples/baby_shower/story.yaml`](examples/baby_shower/story.yaml).
 
@@ -42,6 +43,7 @@ A longer event-film template is
 python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/resolve-template doctor
+.venv/bin/resolve-template new --template cafe --build
 .venv/bin/resolve-template new my_story --build
 .venv/bin/resolve-template new --template baby_shower --build
 .venv/bin/resolve-template resolve-build examples/full_story/story.yaml \

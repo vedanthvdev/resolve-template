@@ -1,0 +1,75 @@
+version: "1"
+title: Cafe pre-edit
+fps: 25
+timeline:
+  name: PRE_EDIT_MAIN
+bins:
+  video: A-Roll
+  vo: Voiceover
+  music: Score
+  sfx: Hits
+  graphics: Graphics
+markers:
+  - at: 0s
+    name: OPENING
+    color: Blue
+    duration: 0.04s
+    note: Exterior into the cafe
+  - at: 2s
+    name: INTERVIEW
+    color: Green
+    duration: 4s
+    note: Sit-down answer
+  - at: 6s
+    name: CLOSING
+    color: Purple
+    duration: 0.04s
+    note: Last look before fade
+video:
+  - shot: 1
+    label: Exterior
+    color: Blue
+    track: V1
+    duration: 2s
+  - shot: 2
+    label: Interview
+    color: Green
+    track: V1
+    duration: 4s
+    linked_audio: true
+  - shot: 3
+    label: Closing
+    color: Purple
+    track: V1
+    duration: 2s
+audio:
+  - role: vo
+    label: Narration
+    track: A1
+    start: 0s
+    duration: 8s
+  - role: music
+    label: Bed
+    track: A2
+    start: 0s
+    duration: 8s
+  - role: sfx
+    label: Door Hit
+    track: A3
+    start: 2s
+    duration: 1s
+transitions:
+  - kind: fade_from_black
+    shot: 1
+    duration: 0.24s
+  - kind: cross_dissolve
+    after_shot: 1
+    duration: 0.24s
+  - kind: fade_to_black
+    shot: 3
+    duration: 0.24s
+titles:
+  - text: THE CAFE
+    track: V2
+    start: 0s
+    duration: 2s

@@ -51,6 +51,21 @@ def test_new_can_write_the_baby_shower_template(tmp_path: Path) -> None:
     assert len(story["titles"]) == 3
 
 
+def test_new_can_write_the_cafe_template(tmp_path: Path) -> None:
+    target = tmp_path / "cafe"
+    assert cmd_new(target, template="cafe") == 0
+    canonical = (
+        Path(__file__).resolve().parents[2] / "examples" / "cafe" / "story.yaml"
+    ).read_text(encoding="utf-8")
+    assert (target / "story.yaml").read_text(encoding="utf-8") == canonical
+    story = load_story(target / "story.yaml")
+    assert [clip["label"] for clip in story["video"]] == ["Exterior", "Interview", "Closing"]
+    assert [clip["duration_frames"] for clip in story["video"]] == [50, 100, 50]
+    assert story["timeline"]["duration_frames"] == 200
+    assert story["video"][1]["linked_audio"] is True
+    assert story["titles"][0]["text"] == "THE CAFE"
+
+
 def test_new_refuses_to_overwrite(tmp_path: Path) -> None:
     target = tmp_path / "my_story"
     target.mkdir()

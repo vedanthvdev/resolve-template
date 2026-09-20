@@ -19,6 +19,11 @@ ten labeled, color-coded V1 clips, named A1–A3 tracks, five custom bins, marke
 three semantic transition roles, and one generated title-card MP4 with visible
 text on V2. Filenames and sequential V1 starts are derived.
 
+`examples/cafe/story.yaml` is the smallest complete cut: three labeled V1 shots
+(2s / 4s / 2s), VO+music beds, one SFX hit, custom bins, fades, a title card,
+and linked camera audio on the interview. Create it with
+`resolve-template new --template cafe`.
+
 `examples/baby_shower/story.yaml` is a longer event-film template: 28 labeled
 V1 shots, interview VO, two music beds, SFX, act titles, and custom bins. Create
 it with `resolve-template new --template baby_shower`.
@@ -40,3 +45,7 @@ Semantic validators then enforce contiguous V1 coverage and transition targets.
 `examples/baby_shower/story.yaml` also round-tripped on 2026-09-20: 28 V1 clips,
 15 A1–A3 clips, 3 title cards, 10 markers, 4 transitions, custom bins, picture
 150s plus a 1.2s fade tail, and 46 media items relinked.
+
+`examples/cafe/story.yaml` round-tripped on 2026-09-20: 3 labeled V1 shots
+(2s / 4s / 2s), picture 8s plus a 0.24s fade tail, custom bins, linked interview
+audio on A4, and 7 media items relinked.
