@@ -38,6 +38,7 @@
           "filename": { "type": "string", "minLength": 1 },
           "label": { "type": "string", "minLength": 1 },
           "color": { "enum": ["Blue", "Green", "Yellow", "Pink", "Purple"] },
+          "linked_audio": { "type": "boolean" },
           "track": { "const": "V1" },
           "start_frame": { "type": "integer", "minimum": 0 },
           "duration_frames": { "type": "integer", "minimum": 1 },

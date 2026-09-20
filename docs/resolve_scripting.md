@@ -195,6 +195,15 @@ Only `Project.SetSettings({"timelineFrameRate": 25.0})` was required. A combined
   Music, and SFX
 - All 15 media items relinked to the persistent package media folder
 
+## Phase 9 validated result
+
+- A generated MP4 with silent stereo AAC appended picture to V1 and production
+  audio to named A4
+- `Timeline.SetClipsLinked([video_item, audio_item], True)` persisted through
+  export/re-import
+- `TimelineItem.GetLinkedItems()` proved the V1/A4 relationship after re-import
+- Video-only placeholders and independent A1–A3 beds remained unchanged
+
 ## Honesty
 
 Phase 2 output can now be labeled `VALIDATED_IN_RESOLVE` only when this live export/re-import validation completes. Offline generation remains `GENERATOR_EXISTS`.

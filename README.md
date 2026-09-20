@@ -13,10 +13,11 @@ This project aims to produce a **genuine** `.drp` by driving Resolve’s officia
 | Native `.drp` proven via Resolve export + re-import | **Validated** on Studio 21.1.0 |
 | Ten sequential V1 placeholders, no gaps | **Validated** on Studio 21.1.0 |
 | Silent VO / music / SFX on A1–A3 | **Validated** on Studio 21.1.0 |
-| Six Media Pool bins + timeline markers | **Validated** on Studio 21.1.0 |
+| Optional custom Media Pool bins + timeline markers | **Validated** on Studio 21.1.0 |
 | Full package ZIP + one-folder relink | **Validated** on Studio 21.1.0 |
 | Cross dissolve, fades, generated title cards | **Validated** on Studio 21.1.0 |
 | Canonical AI/human full-story workflow | **Validated** on Studio 21.1.0 |
+| Optional V1/A4 linked production audio | **Validated** on Studio 21.1.0 |
 
 See [docs/phases/README.md](docs/phases/README.md) for the build order. The canonical
 template is [`examples/full_story/story.yaml`](examples/full_story/story.yaml).
@@ -31,6 +32,7 @@ template is [`examples/full_story/story.yaml`](examples/full_story/story.yaml).
 6. Full story package ZIP → [docs/phases/06-full-story-package.md](docs/phases/06-full-story-package.md)
 7. Transitions and titles → [docs/phases/07-transitions-and-titles.md](docs/phases/07-transitions-and-titles.md)
 8. AI story workflow → [docs/phases/08-ai-story-workflow.md](docs/phases/08-ai-story-workflow.md)
+9. Linked production audio → [docs/phases/09-linked-production-audio.md](docs/phases/09-linked-production-audio.md)
 
 ## Quick start
 
@@ -54,6 +56,8 @@ Schema failures print field paths without a Python traceback.
 - Omit media filenames to derive safe names from shot numbers, roles, and labels.
 - Add video `label` and optional `color`; Resolve receives colored clips with
   labeled clip markers.
+- Set video `linked_audio: true` to generate silent camera audio, place it on
+  named A4 `Production`, and link it to the V1 clip.
 - Omit V1 `start` values to place shots sequentially.
 - Omit `timeline.duration_frames` to derive it from V1.
 - Use seconds for marker `at` and `duration` too.

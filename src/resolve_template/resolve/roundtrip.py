@@ -47,6 +47,7 @@ TRACK_NAMES = {
     ("audio", 1): "VO",
     ("audio", 2): "Music",
     ("audio", 3): "SFX",
+    ("audio", 4): "Production",
 }
 
 
@@ -102,6 +103,7 @@ def resolve_build(
                 + video_handles[int(clip["shot"])]["tail"]
             ),
             color=PLACEHOLDER_VIDEO_COLORS[str(clip["color"])],
+            linked_audio=bool(clip["linked_audio"]),
         )
         for clip in videos
     ]
@@ -212,6 +214,9 @@ def _story_summary(story: dict[str, Any]) -> dict[str, Any]:
         "picture_duration_seconds": picture_frames / fps,
         "fade_tail_frames": fade_tail_frames,
         "video_clips": len(video_clips(story)),
+        "linked_video_clips": sum(
+            1 for clip in video_clips(story) if clip["linked_audio"]
+        ),
         "audio_clips": len(audios),
         "audio_by_track": {
             label: sum(1 for clip in audios if clip["track"] == label)
@@ -279,7 +284,7 @@ def _resolve_roundtrip(
         timeline = media_pool.CreateEmptyTimeline(timeline_name)
         if timeline is None or not project.SetCurrentTimeline(timeline):
             raise RuntimeError(f"Resolve could not create timeline {timeline_name}")
-        _ensure_audio_tracks(timeline, audios)
+        _ensure_audio_tracks(timeline, audios, videos)
         _ensure_video_tracks(timeline, titles)
         _name_tracks(timeline)
 
@@ -304,6 +309,40 @@ def _resolve_roundtrip(
                 f"V1 items instead of {len(videos)}"
             )
         _apply_timeline_labels(appended_video, videos)
+
+        linked_video_indexes = [
+            index for index, clip in enumerate(videos) if clip["linked_audio"]
+        ]
+        if linked_video_indexes:
+            production_audio_infos = [
+                {
+                    "mediaPoolItem": clips[video_paths[index].name],
+                    "startFrame": video_handles[int(videos[index]["shot"])]["head"],
+                    "endFrame": (
+                        video_handles[int(videos[index]["shot"])]["head"]
+                        + int(videos[index]["duration_frames"])
+                    ),
+                    "mediaType": 2,
+                    "trackIndex": 4,
+                    "recordFrame": int(videos[index]["start_frame"]),
+                }
+                for index in linked_video_indexes
+            ]
+            appended_production = media_pool.AppendToTimeline(production_audio_infos)
+            if appended_production is None or len(appended_production) != len(
+                linked_video_indexes
+            ):
+                raise RuntimeError("Resolve did not append the expected production audio")
+            for video_index, audio_item in zip(
+                linked_video_indexes, appended_production, strict=True
+            ):
+                if not timeline.SetClipsLinked(
+                    [appended_video[video_index], audio_item], True
+                ):
+                    raise RuntimeError(
+                        f"Resolve could not link production audio for "
+                        f"{videos[video_index]['filename']}"
+                    )
 
         if audios:
             audio_infos = [
@@ -556,8 +595,14 @@ def _transition_items(items: list[Any]) -> list[Any]:
     return [item for item in items if _item_type(item) == "transition"]
 
 
-def _ensure_audio_tracks(timeline: Any, audios: list[dict[str, Any]]) -> None:
+def _ensure_audio_tracks(
+    timeline: Any,
+    audios: list[dict[str, Any]],
+    videos: list[dict[str, Any]],
+) -> None:
     needed = max((track_index(clip["track"]) for clip in audios), default=0)
+    if any(clip["linked_audio"] for clip in videos):
+        needed = max(needed, 4)
     while timeline.GetTrackCount("audio") < needed:
         if not timeline.AddTrack("audio"):
             raise RuntimeError("Resolve could not add an audio track for A2/A3 placeholders")
@@ -675,6 +720,7 @@ def _validate_roundtrip(
         raise RuntimeError(f"V1 has gaps or overlaps: {gaps}")
 
     audio_by_track = _audio_items_by_track(timeline, audios)
+    production_audio = _validate_production_audio(timeline, videos)
     picture_duration = video_starts[-1] + video_durations[-1] if video_items else 0
     fade_tail = max(
         (
@@ -698,9 +744,12 @@ def _validate_roundtrip(
         "audio_items_a1": len(audio_by_track["A1"]["items"]),
         "audio_items_a2": len(audio_by_track["A2"]["items"]),
         "audio_items_a3": len(audio_by_track["A3"]["items"]),
+        "audio_items_a4": len(production_audio["items"]),
         "audio_names_by_track": {
             track: data["names"] for track, data in audio_by_track.items()
         },
+        "production_audio_names": production_audio["names"],
+        "linked_production_audio": production_audio["linked"],
         "video_names": video_names,
         "video_starts": video_starts,
         "video_durations": video_durations,
@@ -767,6 +816,38 @@ def _audio_items_by_track(timeline: Any, audios: list[dict[str, Any]]) -> dict[s
             raise RuntimeError(f"{label} placement does not match the story spec")
         result[label] = {"items": items, "names": names}
     return result
+
+
+def _validate_production_audio(
+    timeline: Any,
+    videos: list[dict[str, Any]],
+) -> dict[str, Any]:
+    expected = [clip for clip in videos if clip["linked_audio"]]
+    items = []
+    if timeline.GetTrackCount("audio") >= 4:
+        items = timeline.GetItemListInTrack("audio", 4) or []
+    names = [item.GetName() for item in items]
+    expected_names = [str(clip["filename"]) for clip in expected]
+    if names != expected_names:
+        raise RuntimeError(f"A4 names {names} do not match {expected_names}")
+    starts = [int(item.GetStart()) for item in items]
+    durations = [int(item.GetDuration()) for item in items]
+    if starts != [int(clip["start_frame"]) for clip in expected] or durations != [
+        int(clip["duration_frames"]) for clip in expected
+    ]:
+        raise RuntimeError("A4 production audio placement does not match linked V1 clips")
+
+    linked = []
+    for item, clip in zip(items, expected, strict=True):
+        getter = getattr(item, "GetLinkedItems", None)
+        if getter is None:
+            raise RuntimeError("Resolve TimelineItem.GetLinkedItems is unavailable")
+        linked_names = [linked_item.GetName() for linked_item in (getter() or [])]
+        is_linked = str(clip["filename"]) in linked_names
+        if not is_linked:
+            raise RuntimeError(f"Production audio for {clip['filename']} is not linked")
+        linked.append(is_linked)
+    return {"items": items, "names": names, "linked": linked}
 
 
 def _validate_bins(
@@ -958,7 +1039,8 @@ def _package_readme(validated: bool) -> str:
         f"**Validation label:** `{label}`\n\n"
         f"{drp_line}\n"
         "Contents:\n"
-        "- `Placeholder_Media/` — generated color-coded MP4s, silent WAVs, and title-card MP4s (not real footage)\n"
+        "- `Placeholder_Media/` — generated color-coded MP4s, optional silent linked "
+        "production audio, silent WAVs, and title-card MP4s (not real footage)\n"
         "- `shot_tracker.csv` — timeline durations plus source-handle metadata\n"
         "- `timeline_map.md` — V1/V2/A1–A3 layout, markers, and transitions\n"
         "- `story.snapshot.yaml` — the story used to build this package\n\n"

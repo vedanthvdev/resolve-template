@@ -19,6 +19,10 @@ media filenames, labels, and clip colors are derived when omitted. `bins` may
 be omitted or supplied as a partial role-to-name mapping; the canonical full
 story demonstrates the preferred form.
 
+Video clips may set `linked_audio: true` when a camera-style placeholder should
+carry silent production audio linked on A4. Leave it false or omit it for
+video-only B-roll and for stories driven entirely by VO/music/SFX beds.
+
 The `titles` section creates generated title-card MP4 placeholders with visible
 rendered text on V2. It does not author Resolve Text, Text+, or Fusion
 compositions.

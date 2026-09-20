@@ -12,6 +12,7 @@ Build **one phase at a time**. Do not start a phase until its predecessor gate i
 | 6 | [06-full-story-package.md](06-full-story-package.md) | **Validated 2026-09-19** | ZIP package with honest README |
 | 7 | [07-transitions-and-titles.md](07-transitions-and-titles.md) | **Validated 2026-09-19** | At least one transition round-trip |
 | 8 | [08-ai-story-workflow.md](08-ai-story-workflow.md) | **Validated 2026-09-19** | Full story builds via same path |
+| 9 | [09-linked-production-audio.md](09-linked-production-audio.md) | **Validated 2026-09-20** | Optional V1/A4 linked camera audio round-trips |
 
 ## Rules
 

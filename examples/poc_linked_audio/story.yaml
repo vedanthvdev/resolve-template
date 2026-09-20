@@ -1,0 +1,17 @@
+version: "1"
+title: Linked production audio POC
+fps: 25
+timeline:
+  name: PRE_EDIT_MAIN
+bins:
+  video: Camera
+video:
+  - shot: 1
+    label: Camera With Scratch Audio
+    track: V1
+    duration: 2s
+    linked_audio: true
+  - shot: 2
+    label: Silent B-Roll
+    track: V1
+    duration: 2s

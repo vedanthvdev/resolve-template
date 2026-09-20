@@ -74,6 +74,7 @@ def normalize_story_authoring(story: dict[str, Any]) -> None:
         label = str(supplied_label or f"Shot {shot:03d}")
         clip["label"] = label
         clip["color"] = str(clip.get("color") or VIDEO_COLORS[(shot - 1) % len(VIDEO_COLORS)])
+        clip["linked_audio"] = bool(clip.get("linked_audio", False))
         filename_label = (
             _filename_part(str(supplied_label), fallback="SHOT")
             if supplied_label
