@@ -8,7 +8,7 @@ This project aims to produce a **genuine** `.drp` by driving Resolve’s officia
 
 | Capability | Status |
 |------------|--------|
-| Offline inspect of a real `.drp` | Documented (Phase 1, 21.1 ZIP+XML; see `docs/`) |
+| Offline inspect of a real `.drp` | Documented (Phase 1); cafe `ExportProject` fixture in git |
 | Generated color-coded MP4 + silent WAV package | Working (Phase 2) |
 | Native `.drp` proven via Resolve export + re-import | **Validated** on Studio 21.1.0 |
 | Ten sequential V1 placeholders, no gaps | **Validated** on Studio 21.1.0 |

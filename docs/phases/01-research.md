@@ -10,8 +10,9 @@ Learn how real Resolve projects are stored and which official APIs can create a 
 
 ## Files
 
-- `fixtures/resolve_21/paris/paris.drp`
-- `fixtures/resolve_21/paris/MANIFEST.md`
+- `fixtures/resolve_21/cafe/project.drp` — tiny native `ExportProject` from the cafe template
+- `fixtures/resolve_21/cafe/MANIFEST.md`
+- `fixtures/resolve_21/paris/MANIFEST.md` — historical personal export, not in git
 - `docs/reference_project_analysis.md`
 - `docs/file_format_observations.md`
 - `docs/resolve_scripting.md`
@@ -24,7 +25,7 @@ Learn how real Resolve projects are stored and which official APIs can create a 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
-.venv/bin/python -m resolve_template.cli inspect fixtures/resolve_21/paris/paris.drp
+.venv/bin/resolve-template inspect fixtures/resolve_21/cafe/project.drp
 .venv/bin/python -m pytest tests/unit/test_inspect.py
 ```
 
@@ -33,4 +34,5 @@ python3 -m venv .venv
 - Offline inspect of a real `.drp` works.
 - Observations and scripting notes are written so Phase 2 can target official APIs only.
 
-**Gate met for research/docs.** Binary fixture is still only at `~/Downloads/paris.drp` (see `fixtures/resolve_21/paris/MANIFEST.md`).
+**Gate met.** Contributors inspect the committed cafe export. The original paris
+archive stays outside git because it contains personal media paths.

@@ -33,9 +33,10 @@ See table in `docs/reference_project_analysis.md`. Short list:
 
 ```bash
 .venv/bin/python -m resolve_template.cli inspect /Users/chintuvedanth/Downloads/paris.drp
-# or, if copied:
-.venv/bin/python -m resolve_template.cli inspect fixtures/resolve_21/paris/paris.drp
 ```
+
+Do not copy this archive into git. For a reproducible inspect fixture, use
+`fixtures/resolve_21/cafe/project.drp`.
 
 Expect: `is_zip: true`, 12 members. Do not require ElementTree success.
 

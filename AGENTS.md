@@ -23,7 +23,9 @@ Phase 1 notes (2026-09-18, Resolve 21.1.0):
 - [docs/resolve_scripting.md](docs/resolve_scripting.md)
 - [docs/resolve_generation_strategy.md](docs/resolve_generation_strategy.md)
 
-`.drp` source path: `/Users/chintuvedanth/Downloads/paris.drp`. Live projects `paris` and `Copy of paris` are off-limits for experiments.
+`.drp` source path for historical notes: `/Users/chintuvedanth/Downloads/paris.drp`.
+Live projects `paris` and `Copy of paris` are off-limits for experiments.
+Reproducible inspect fixture: `fixtures/resolve_21/cafe/project.drp`.
 
 ## Investigator prompt
 
