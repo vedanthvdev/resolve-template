@@ -63,9 +63,29 @@ def load_story(path: Path) -> dict[str, Any]:
     return data
 
 
-VIDEO_COLORS = ("Blue", "Green", "Yellow", "Pink", "Purple")
+VIDEO_COLORS = (
+    "Orange",
+    "Apricot",
+    "Yellow",
+    "Lime",
+    "Olive",
+    "Green",
+    "Teal",
+    "Navy",
+    "Blue",
+    "Purple",
+    "Violet",
+    "Pink",
+    "Tan",
+    "Beige",
+    "Brown",
+    "Chocolate",
+)
 DEFAULT_WIDTH = 1920
 DEFAULT_HEIGHT = 1080
+# Resolve treats a single-frame H.264 clip as a still and stretches it to its
+# default still duration, so generated video always carries at least two frames.
+MIN_SOURCE_FRAMES = 2
 
 
 def normalize_story_authoring(story: dict[str, Any]) -> None:
@@ -448,6 +468,14 @@ def source_handles(story: dict[str, Any]) -> dict[int, dict[str, int]]:
             shot = int(item["shot"])
             result[shot]["tail"] = max(result[shot]["tail"], duration)
     return result
+
+
+def source_duration_frames(clip: dict[str, Any], handles: dict[str, int]) -> int:
+    """Generated media length: edit duration, transition handles, and the still floor."""
+    return max(
+        MIN_SOURCE_FRAMES,
+        int(clip["duration_frames"]) + handles["head"] + handles["tail"],
+    )
 
 
 def validate_transitions_and_titles(story: dict[str, Any]) -> None:

@@ -17,7 +17,8 @@ checks then enforce contiguous V1 placement and valid transition targets.
 Models may author `start`, `duration`, marker `at`, marker `duration`, and
 transition `duration` in seconds (`2s`, `0.24s`). Optional `width` and `height`
 must be even integers of at least 16 and default to 1920×1080. V1 starts, timeline duration,
-media filenames, labels, and clip colors are derived when omitted. Timeline
+media filenames, labels, and clip colors are derived when omitted. Video colors
+accept Resolve's full 16-value clip-color set (`Orange` through `Chocolate`). Timeline
 clips are named from those labels. `bins` may
 be omitted or supplied as a partial role-to-name mapping; the canonical full
 story demonstrates the preferred form.

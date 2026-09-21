@@ -87,6 +87,7 @@ video:
     color: Blue
     track: V1
     duration: 10s
+    linked_audio: true
   - shot: 6
     label: Guests Arriving
     color: Pink
@@ -102,6 +103,7 @@ video:
     color: Blue
     track: V1
     duration: 10s
+    linked_audio: true
   - shot: 9
     label: Parents Together Slow
     color: Purple
@@ -117,6 +119,7 @@ video:
     color: Blue
     track: V1
     duration: 9s
+    linked_audio: true
   - shot: 12
     label: Hugs And Greetings
     color: Purple
@@ -158,6 +161,7 @@ video:
     color: Blue
     track: V1
     duration: 8s
+    linked_audio: true
   - shot: 20
     label: Confetti Pop
     color: Yellow
@@ -173,6 +177,7 @@ video:
     color: Blue
     track: V1
     duration: 8s
+    linked_audio: true
   - shot: 23
     label: Gift Opening
     color: Green

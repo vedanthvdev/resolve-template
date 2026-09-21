@@ -5,8 +5,10 @@ from pathlib import Path
 
 import pytest
 
+from resolve_template.resolve.roundtrip import PLACEHOLDER_VIDEO_COLORS
 from resolve_template.story import (
     STANDARD_BINS,
+    VIDEO_COLORS,
     StoryValidationError,
     audio_display_name,
     bin_mapping,
@@ -220,6 +222,18 @@ def test_packaged_schema_matches_public_schema() -> None:
     assert packaged == public
 
 
+def test_video_colors_match_resolve_clip_color_set() -> None:
+    root = Path(__file__).resolve().parents[2]
+    schema = json.loads(
+        (root / "schemas" / "story-v1.schema.json").read_text(encoding="utf-8")
+    )
+    schema_colors = schema["properties"]["video"]["items"]["properties"]["color"]["enum"]
+    assert schema_colors == list(VIDEO_COLORS)
+    assert set(PLACEHOLDER_VIDEO_COLORS) == set(VIDEO_COLORS)
+    assert VIDEO_COLORS[0] == "Orange"
+    assert VIDEO_COLORS[-1] == "Chocolate"
+
+
 def test_packaged_story_templates_match_examples() -> None:
     root = Path(__file__).resolve().parents[2]
     for name in ("cafe", "full_story", "baby_shower"):
@@ -381,7 +395,7 @@ titles:
     )
     story = load_story(path)
     assert story["video"][0]["filename"] == "001_CAFE_EXTERIOR_PLACEHOLDER.mp4"
-    assert story["video"][0]["color"] == "Blue"
+    assert story["video"][0]["color"] == "Orange"
     assert story["video"][0]["linked_audio"] is True
     assert story["audio"][0]["filename"] == "VO_01_WELCOME_PLACEHOLDER.wav"
     assert story["titles"][0]["filename"] == "TITLE_01_THE_CAFE.mp4"

@@ -19,12 +19,14 @@ from resolve_template.placeholders import (
 )
 from resolve_template.resolve.api import get_resolve
 from resolve_template.story import (
+    MARKER_COLORS,
     audio_clips,
     audio_display_name,
     bin_mapping,
     bins,
     load_story,
     markers,
+    source_duration_frames,
     source_handles,
     title_display_name,
     titles,
@@ -37,12 +39,24 @@ from resolve_template.story import (
 DISPOSABLE_PROJECT_PREFIX = "_rt_resolve_template_"
 PROTECTED_PROJECT_NAMES = {"paris", "Copy of paris"}
 RESOLVE_LOCK_PATH = Path("/tmp/resolve-template-resolve.lock")
+CLIP_LABEL_MARKER_COLOR = "Blue"
 PLACEHOLDER_VIDEO_COLORS = {
-    "Blue": "0x315c8a",
-    "Green": "0x3f7d5a",
+    "Orange": "0xd77b32",
+    "Apricot": "0xd99b68",
     "Yellow": "0xa8842f",
-    "Pink": "0x8f4f70",
+    "Lime": "0x8aa83f",
+    "Olive": "0x6f7435",
+    "Green": "0x3f7d5a",
+    "Teal": "0x2f7f78",
+    "Navy": "0x334f72",
+    "Blue": "0x315c8a",
     "Purple": "0x624f82",
+    "Violet": "0x76558f",
+    "Pink": "0x8f4f70",
+    "Tan": "0xa78b68",
+    "Beige": "0xb8aa8d",
+    "Brown": "0x76513c",
+    "Chocolate": "0x55372e",
 }
 TRACK_NAMES = {
     ("video", 1): "Picture",
@@ -113,13 +127,8 @@ def resolve_build(
             media_dir,
             filename=clip["filename"],
             fps=fps,
-            duration_frames=max(
-                2,
-                (
-                    int(clip["duration_frames"])
-                    + video_handles[int(clip["shot"])]["head"]
-                    + video_handles[int(clip["shot"])]["tail"]
-                ),
+            duration_frames=source_duration_frames(
+                clip, video_handles[int(clip["shot"])]
             ),
             color=PLACEHOLDER_VIDEO_COLORS[str(clip["color"])],
             linked_audio=bool(clip["linked_audio"]),
@@ -634,8 +643,13 @@ def _apply_timeline_labels(items: list[Any], videos: list[dict[str, Any]]) -> No
         _set_timeline_item_name(item, label, clip["filename"])
         if not item.SetClipColor(color):
             raise RuntimeError(f"Resolve could not color timeline clip {clip['filename']}")
-        if not item.AddMarker(0, color, label, f"Shot {clip['shot']}", 1):
+        if not item.AddMarker(0, _label_marker_color(color), label, f"Shot {clip['shot']}", 1):
             raise RuntimeError(f"Resolve could not label timeline clip {clip['filename']}")
+
+
+def _label_marker_color(clip_color: str) -> str:
+    """Resolve's marker palette is not the clip palette; keep it only where they agree."""
+    return clip_color if clip_color in MARKER_COLORS else CLIP_LABEL_MARKER_COLOR
 
 
 def _set_timeline_item_name(item: Any, name: str, context: str) -> None:
